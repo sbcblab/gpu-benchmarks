@@ -18,17 +18,13 @@ class Composition01 : public Benchmark<T> {
         T * p_tcfit_dev;
 
         void allocateMemory(){
-            cudaMalloc<T>(&(this->p_x_dev), (this->n)*(this->pop_size)*sizeof(T));
             cudaMalloc<T>(&(this->p_aux_dev), (this->n)*(this->pop_size)*sizeof(T));
-            cudaMalloc<T>(&(this->p_f_dev), (this->pop_size)*sizeof(T));
             cudaMalloc<T>(&p_tcfit_dev, cf_num*(this->pop_size)*sizeof(T));
             cudaMalloc<T>(&p_cfit_dev, cf_num*(this->pop_size)*sizeof(T));
         }
 
         void freeMemory(){
-            cudaFree(this->p_x_dev);
             cudaFree(this->p_aux_dev);
-            cudaFree(this->p_f_dev);
             cudaFree(p_cfit_dev);
             cudaFree(p_tcfit_dev);
 
@@ -81,37 +77,37 @@ class Composition01 : public Benchmark<T> {
         }
 
 
-        void compute(){
+        void compute(T *p_x_dev, T*p_f_dev){
             
             int offset = 0;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_shift_dev, this->p_aux_dev, ROSENBROCK_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_shift_dev, this->p_aux_dev, ROSENBROCK_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(this->p_rotm_dev);
             rosenbrock_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 1;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*this->n]), this->p_aux_dev, ELLIPSIS_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*this->n]), this->p_aux_dev, ELLIPSIS_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(&(this->p_rotm_dev[this->n*this->n]));
             ellips_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 2;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, BENT_CIGAR_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, BENT_CIGAR_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(&(this->p_rotm_dev[offset*this->n*this->n]));
             bent_cigar_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 3;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, DISCUS_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, DISCUS_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(&(this->p_rotm_dev[offset*this->n*this->n]));
             discus_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 4;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, ELLIPSIS_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, ELLIPSIS_BOUND/X_BOUND, this->n, this->pop_size);
             ellips_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->p_aux_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             transpose_fit();
             dim3 BLOCK(32, this->cf_num);
 
-            cfcal_gpu<<<this->pop_size, BLOCK>>>(  this->p_x_dev, 
-                                                    this->p_f_dev, 
+            cfcal_gpu<<<this->pop_size, BLOCK>>>(  p_x_dev, 
+                                                    p_f_dev, 
                                                     this->p_shift_dev, 
                                                     this->p_tcfit_dev, 
                                                     this->n );

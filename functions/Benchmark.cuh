@@ -13,78 +13,15 @@ __device__ __constant__ float p_bias_dev[8];
 __device__ __constant__ float p_delta_dev[8];
 
 
-__global__ void cfcal_gpu(double *x, double *f, double *Os, double *fit, int nx){
-    int i;
-    cg::thread_block_tile<WARP_SIZE> group = cg::tiled_partition<WARP_SIZE>(cg::this_thread_block());
-
-    __shared__ double smem[WARP_SIZE];
-
-    double xi;
-    double w = 0.0;
-    double f_temp = 0.0;        
-
-    x = &x[blockIdx.x*nx];
-    Os = &Os[threadIdx.y*nx];
-    fit = &fit[blockIdx.x*blockDim.y];
-
-
-    for(i = group.thread_rank(); i < nx; i += group.size()){
-        xi = x[i] - Os[i];
-        w += xi*xi;
-    }
-
-    w += group.shfl_down(w, 16);
-    w += group.shfl_down(w, 8);
-    w += group.shfl_down(w, 4);
-    w += group.shfl_down(w, 2);
-    w += group.shfl_down(w, 1);
-
-    if(group.thread_rank() == 0){
-        smem[threadIdx.y] = w;
-    }
-    __syncthreads();
-
-    double w_sum = 0.0;
-    double w_temp = 0.0;
-
-    if(group.meta_group_rank() == 0){
-        w = 0;
-        if(group.thread_rank() < blockDim.y){
-            w = smem[group.thread_rank()];
-            double d = p_delta_dev[group.thread_rank()];
-            double b = p_bias_dev[group.thread_rank()];
-            
-            f_temp = fit[group.thread_rank()]*p_lambda_dev[group.thread_rank()] + b;
-            if(w != 0){
-                w = pow(1.0/w,0.5)*exp(-w/2.0/nx/pow(d, 2.0));
-            } else {
-                w = INFINITY;
-            }
-
-        }
-
-        w_sum = w;
-        w_sum += group.shfl_down(w_sum, 4);
-        w_sum += group.shfl_down(w_sum, 2);
-        w_sum += group.shfl_down(w_sum, 1);
-        
-        w_temp = f_temp*w;
-
-        w_temp += group.shfl_down(w_temp, 4);
-        w_temp += group.shfl_down(w_temp, 2);
-        w_temp += group.shfl_down(w_temp, 1);
-
-        if(group.thread_rank() == 0){
-            f[blockIdx.x] = w_temp/w_sum;
-        }
-    }
-}
+template<typename T>
+__global__ void cfcal_gpu(T *x, T *f, T *Os, T *fit, int nx);
 
 template <class T> 
 class Benchmark {
     protected:
-        T *p_x_dev; T *p_f_dev; T *p_aux_dev; T *rot_dev;
+        T *p_aux_dev; T *rot_dev;
         T *p_cfit_dev;
+        // T *p_x_dev; T *p_f_dev; 
         T *p_rotm_dev; T *p_shift_dev;
 
         cublasHandle_t handle;
@@ -181,27 +118,27 @@ class Benchmark {
 
         }
 
-        virtual void compute()
+        virtual void compute(T *p_x_dev, T*p_f_dev)
         {
             /* empty */
         };
 
 
-        void input(T *x){
-            cudaMemcpy(p_x_dev, x, n*pop_size*sizeof(T), cudaMemcpyHostToDevice);
-        }
+        // void input(T *x){
+        //     cudaMemcpy(p_x_dev, x, n*pop_size*sizeof(T), cudaMemcpyHostToDevice);
+        // }
 
-        void output(T *f){
-            cudaMemcpy(f, p_f_dev, pop_size*sizeof(T), cudaMemcpyDeviceToHost);
-        }
+        // void output(T *f){
+        //     cudaMemcpy(f, p_f_dev, pop_size*sizeof(T), cudaMemcpyDeviceToHost);
+        // }
         
-        T* get_input_dev(){
-            return p_x_dev;
-        }
+        // T* get_input_dev(){
+        //     return p_x_dev;
+        // }
 
-        T* get_output_dev(){
-            return p_f_dev;
-        }
+        // T* get_output_dev(){
+        //     return p_f_dev;
+        // }
 
         uint getID();
 
@@ -240,4 +177,73 @@ void Benchmark<float>::rotation(float *rot_matrix){
     float beta  = 0.0;
 
     cublasSgemm( handle, CUBLAS_OP_T, CUBLAS_OP_N, n, pop_size, n, &alpha, rot_matrix, n, p_aux_dev, n, &beta, rot_dev, n );
+}
+
+template<typename T>
+__global__ void cfcal_gpu(T *x, T *f, T *Os, T *fit, int nx){
+    int i;
+    cg::thread_block_tile<WARP_SIZE> group = cg::tiled_partition<WARP_SIZE>(cg::this_thread_block());
+
+    __shared__ T smem[WARP_SIZE];
+
+    T xi;
+    T w = 0.0;
+    T f_temp = 0.0;        
+
+    x = &x[blockIdx.x*nx];
+    Os = &Os[threadIdx.y*nx];
+    fit = &fit[blockIdx.x*blockDim.y];
+
+
+    for(i = group.thread_rank(); i < nx; i += group.size()){
+        xi = x[i] - Os[i];
+        w += xi*xi;
+    }
+
+    w += group.shfl_down(w, 16);
+    w += group.shfl_down(w, 8);
+    w += group.shfl_down(w, 4);
+    w += group.shfl_down(w, 2);
+    w += group.shfl_down(w, 1);
+
+    if(group.thread_rank() == 0){
+        smem[threadIdx.y] = w;
+    }
+    __syncthreads();
+
+    T w_sum = 0.0;
+    T w_temp = 0.0;
+
+    if(group.meta_group_rank() == 0){
+        w = 0;
+        if(group.thread_rank() < blockDim.y){
+            w = smem[group.thread_rank()];
+            
+            float d = p_delta_dev[group.thread_rank()];
+            float b = p_bias_dev[group.thread_rank()];
+            
+            f_temp = fit[group.thread_rank()]*p_lambda_dev[group.thread_rank()] + b;
+            if(w != 0){
+                w = pow(1.0/w,0.5)*exp(-w/2.0/nx/pow(d, 2.0));
+            } else {
+                w = INFINITY;
+            }
+
+        }
+
+        w_sum = w;
+        w_sum += group.shfl_down(w_sum, 4);
+        w_sum += group.shfl_down(w_sum, 2);
+        w_sum += group.shfl_down(w_sum, 1);
+        
+        w_temp = f_temp*w;
+
+        w_temp += group.shfl_down(w_temp, 4);
+        w_temp += group.shfl_down(w_temp, 2);
+        w_temp += group.shfl_down(w_temp, 1);
+
+        if(group.thread_rank() == 0){
+            f[blockIdx.x] = w_temp/w_sum;
+        }
+    }
 }

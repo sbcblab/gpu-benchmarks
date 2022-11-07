@@ -10,6 +10,9 @@ all: main
 main: main.cu benchmark_kernels.o utils.o vector_ops.o
 	$(CC) -o $(DIR)/$(OUT_FILE) $^ $(CFLAGS) $(GPUFLAGS)
 
+objects: benchmark_kernels.o vector_ops.o 
+	$(CC) -c $^ $(CFLAGS) utils.cpp $(GPUFLAGS)
+
 main.o: tests.cu
 	$(CC) -c $^ $(CFLAGS)  $(GPUFLAGS)
 

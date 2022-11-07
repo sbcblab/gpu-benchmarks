@@ -13,16 +13,12 @@ template <class T>
 class Zakharov : public Benchmark<T> {
     private:
         void allocateMemory(){
-            cudaMalloc<T>(&(this->p_x_dev), (this->n)*(this->pop_size)*sizeof(T));
             cudaMalloc<T>(&(this->p_aux_dev), (this->n)*(this->pop_size)*sizeof(T));
-            cudaMalloc<T>(&(this->p_f_dev), (this->pop_size)*sizeof(T));
         }
 
         void freeMemory(){
-            cudaFree(this->p_x_dev);
             cudaFree(this->p_aux_dev);
-            cudaFree(this->p_f_dev);
-
+            
             cublasDestroy(this->handle);
             
             if(this->shift_func) cudaFree(this->p_shift_dev);
@@ -55,15 +51,15 @@ class Zakharov : public Benchmark<T> {
             freeMemory();
         }
 
-        void compute(){
+        void compute(T *p_x_dev, T *p_f_dev){
             T* p_kernel_input;
             
             //shift
             if(this->shift_func){
-                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_shift_dev, this->p_aux_dev, ZAKHAROV_BOUND/X_BOUND, this->n, this->pop_size);
+                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_shift_dev, this->p_aux_dev, ZAKHAROV_BOUND/X_BOUND, this->n, this->pop_size);
             } else {
                 //shrink
-                shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_aux_dev, ZAKHAROV_BOUND/X_BOUND, (this->n)*(this->pop_size));
+                shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_aux_dev, ZAKHAROV_BOUND/X_BOUND, (this->n)*(this->pop_size));
             }
 
             if(this->rot_func){
@@ -73,7 +69,7 @@ class Zakharov : public Benchmark<T> {
                 p_kernel_input = this->p_aux_dev;
             }
             
-            zakharov_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n);
+            zakharov_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, p_f_dev, this->n);
         }
 
 

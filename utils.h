@@ -56,7 +56,7 @@ void init_vector_from_binary(TYPE *V, int n, const char* filename){
         exit(EXIT_FAILURE);
     }
 
-    fread(V, n*sizeof(TYPE), 1, fp);
+    size_t ret = fread(V, n*sizeof(TYPE), 1, fp);
 
 }
 
@@ -71,7 +71,7 @@ void vector_to_file(TYPE *V, int n, const char* filename){
         exit(EXIT_FAILURE);
     }
 
-    fwrite(V, n*sizeof(double), 1, fp);
+    size_t ret = fwrite(V, n*sizeof(double), 1, fp);
 
 }
 
