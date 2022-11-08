@@ -69,13 +69,12 @@ class Rosenbrock : public Benchmark<T> {
 
         void compute(T *p_x_dev, T *p_f_dev){
             T* p_kernel_input;
-            T shrink_factor = ROSENBROCK_BOUND/X_BOUND;
             //shift
             if(this->shift_func){
-                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_shift_dev, this->p_aux_dev, shrink_factor, this->n, this->pop_size);
+                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_shift_dev, this->p_aux_dev, ROSENBROCK_BOUND/X_BOUND, this->n, this->pop_size);
             } else {
                 //shrink
-                shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_aux_dev, shrink_factor, (this->n)*(this->pop_size));
+                shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_aux_dev, ROSENBROCK_BOUND/X_BOUND, (this->n)*(this->pop_size));
             }
 
             if(this->rot_func){

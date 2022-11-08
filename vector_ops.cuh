@@ -1,13 +1,13 @@
 #pragma once
 
 template <typename T>
-__global__ void shrink_vector(T *x, T *out, T shrink_rate, int n);
+__global__ void shrink_vector(T *x, T *out, float shrink_rate, int n);
 
 template <typename T>
-__global__ void shift_shrink_vector(T *X_dev, T *Opt_shift, T *out_dev, T shrink_rate, int n, int pop);
+__global__ void shift_shrink_vector(T *X_dev, T *Opt_shift, T *out_dev, float shrink_rate, int n, int pop);
 
 template <typename T>
-__global__ void shrink_vector(T *x, T *out, T shrink_rate, int n){
+__global__ void shrink_vector(T *x, T *out, float shrink_rate, int n){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     int id_dim = tid % n;   // dimensions id
     int id_ind = tid / n;   // individual id
@@ -19,7 +19,7 @@ __global__ void shrink_vector(T *x, T *out, T shrink_rate, int n){
 
 // shrink_rate = FUNC_BOUND/X_BOUND 
 template <typename T>
-__global__ void shift_shrink_vector(T *X_dev, T *Opt_shift, T *out_dev, T shrink_rate, int n, int pop){
+__global__ void shift_shrink_vector(T *X_dev, T *Opt_shift, T *out_dev, float shrink_rate, int n, int pop){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     
     if(tid < n*pop){
