@@ -20,12 +20,16 @@ class Hybrid01 : public Benchmark<T> {
 
         void freeMemory(){
             cudaFree(this->p_aux_dev);
-        
-            cublasDestroy(this->handle);
+            
+            if(this->rot_func){
+                cudaFree(this->p_rotm_dev);
+                cublasDestroy(this->handle);
+            }
             
             if(this->shift_func) cudaFree(this->p_shift_dev);
-            if(this->rot_func)   cudaFree(this->p_rotm_dev);
+            
         }
+        
     public:
         
         Hybrid01(int _n, int _pop_size){
@@ -35,15 +39,23 @@ class Hybrid01 : public Benchmark<T> {
             this->grid_size_shift = (_pop_size*_n)/MIN_OCCUPANCY + int((_pop_size*_n % MIN_OCCUPANCY) > 0);
 
             this->kernel_launch_config(this->grid_size, this->block_shape, this->shared_mem_size);
+
+            allocateMemory();
+
+        }
+
+        Hybrid01(int _n, int _pop_size, char shift_filename[], char matrix_filename[]){
+            this->pop_size = _pop_size;
+            this->n = _n;
+
+            this->grid_size_shift = (_pop_size*_n)/MIN_OCCUPANCY + int((_pop_size*_n % MIN_OCCUPANCY) > 0);
+
+            this->kernel_launch_config(this->grid_size, this->block_shape, this->shared_mem_size);
             
             cublasCreate(&(this->handle));
 
-            char matrix_filename[50] = {};
-
-            snprintf(matrix_filename, 50, "./input_data/matrices/basic_%d.bin", _n);
             this->use_rotation_matrix(matrix_filename, _n*_n);
-
-            this->use_shift_vector("./input_data/shift_vectors/basic_shift.bin", _n);            
+            this->use_shift_vector(shift_filename, _n);            
 
             allocateMemory();
 

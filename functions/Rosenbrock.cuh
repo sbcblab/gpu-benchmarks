@@ -30,6 +30,7 @@ class Rosenbrock : public Benchmark<T> {
             if(this->shift_func) cudaFree(this->p_shift_dev);
             
         }
+        
     public:
         
         Rosenbrock(int _n, int _pop_size){
