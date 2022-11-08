@@ -5,9 +5,11 @@
 #include <stdio.h>
 #include "../benchmark_constants.cuh"
 #include "../gpu_constants.cuh"
-#include "../benchmark_kernels.cuh"
 #include "../vector_ops.cuh"
 #include "cublas_v2.h"
+
+template <typename T>
+__global__ void zakharov_gpu(T *x, T *f, int nx);
 
 template <class T> 
 class Zakharov : public Benchmark<T> {
@@ -75,3 +77,80 @@ class Zakharov : public Benchmark<T> {
 
 
 };
+
+
+template <> 
+__global__ void zakharov_gpu<double>(double *x, double *f, int nx){
+    int i;
+    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
+    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
+
+    extern __shared__ double2 smemvec[];
+
+    double2 sum = {0, 0};
+
+    double value = 0;
+    
+    for(i = threadIdx.x; i < nx; i += blockDim.x){
+        value = x[chromo_id*nx + i];
+
+        sum.x += value*value;
+        sum.y += 0.5*(i+1)*value;
+    }
+
+    smemvec[gene_block_id] = sum;
+    __syncthreads();
+    
+    for( i = blockDim.x / 2; i > 0; i >>= 1){
+        if(threadIdx.x < i){
+            smemvec[gene_block_id].x += smemvec[gene_block_id + i].x;
+            smemvec[gene_block_id].y += smemvec[gene_block_id + i].y;
+        }
+        __syncthreads();
+    }
+
+    if(threadIdx.x == 0){
+        sum = smemvec[gene_block_id];
+        sum.y = sum.y*sum.y;
+        f[chromo_id] = sum.x + sum.y + sum.y*sum.y; 
+    }
+
+}
+
+template <> 
+__global__ void zakharov_gpu<float>(float *x, float *f, int nx){
+    int i;
+    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
+    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
+
+    extern __shared__ float2 smemvec[];
+
+    float2 sum = {0, 0};
+
+    float value = 0;
+    
+    for(i = threadIdx.x; i < nx; i += blockDim.x){
+        value = x[chromo_id*nx + i];
+
+        sum.x += value*value;
+        sum.y += 0.5*(i+1)*value;
+    }
+
+    smemvec[gene_block_id] = sum;
+    __syncthreads();
+    
+    for( i = blockDim.x / 2; i > 0; i >>= 1){
+        if(threadIdx.x < i){
+            smemvec[gene_block_id].x += smemvec[gene_block_id + i].x;
+            smemvec[gene_block_id].y += smemvec[gene_block_id + i].y;
+        }
+        __syncthreads();
+    }
+
+    if(threadIdx.x == 0){
+        sum = smemvec[gene_block_id];
+        sum.y = sum.y*sum.y;
+        f[chromo_id] = sum.x + sum.y + sum.y*sum.y; 
+    }
+
+}

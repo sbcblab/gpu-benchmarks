@@ -5,9 +5,15 @@
 #include <stdio.h>
 #include "../benchmark_constants.cuh"
 #include "../gpu_constants.cuh"
-#include "../benchmark_kernels.cuh"
 #include "../vector_ops.cuh"
 #include "cublas_v2.h"
+
+
+template <typename T>
+__device__ T w_levy(T x);
+
+template <typename T>
+__global__ void levy_gpu(T *x, T *f, int nx);
 
 template <class T> 
 class Levy : public Benchmark<T> {
@@ -76,3 +82,55 @@ class Levy : public Benchmark<T> {
 
 
 };
+
+template <typename T>
+__global__ void levy_gpu(T *x, T *f, int nx){
+    int i;
+    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
+    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
+
+    extern __shared__ T s_mem[];
+
+    T wi   = 0.0;
+    T sum = 0.0;
+
+    if(threadIdx.x < nx){
+        wi = w_levy(x[chromo_id*nx + threadIdx.x]);
+
+        if(threadIdx.x == 0){
+            sum = sin(PI*wi)*sin(PI*wi);
+        }
+        
+        if(threadIdx.x == nx - 1){
+            sum = (wi - 1)*(wi - 1)*(1 + sin(2*PI*wi)*sin(2*PI*wi));
+        } else {
+            sum += pow((wi-1),2) * (1+10*pow((sin(PI*wi+1)),2));
+        }
+    }
+
+
+    for(i = threadIdx.x + blockDim.x; i < nx; i += blockDim.x){
+        wi = w_levy(x[chromo_id*nx + i]);
+
+        if(i == nx - 1){
+            sum += (wi - 1)*(wi - 1)*(1 + sin(2*PI*wi)*sin(2*PI*wi));
+        } else {
+            sum += pow((wi-1),2) * (1+10*pow((sin(PI*wi+1)),2));
+        }
+    }
+
+
+    s_mem[gene_block_id] = sum;
+    __syncthreads();
+    reduction(gene_block_id, s_mem);
+
+    if(threadIdx.x == 0){
+        f[chromo_id] = s_mem[gene_block_id];
+    }
+
+}
+
+template <typename T>
+__device__ T w_levy(T x){
+    return 1 + (x - 0.0)/4.0;
+}

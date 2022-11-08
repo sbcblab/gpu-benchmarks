@@ -5,10 +5,17 @@
 #include <stdio.h>
 #include "../benchmark_constants.cuh"
 #include "../gpu_constants.cuh"
-#include "../benchmark_kernels.cuh"
 #include "../vector_ops.cuh"
 #include "cublas_v2.h"
 
+template<typename T>
+__global__ void hgbat_gpu(T *x, T *f, int nx);
+
+template <typename T>
+__global__ void schwefel_gpu(T *x, T *f, int nx);
+
+template <typename T>
+__global__ void rastrigin_gpu(T *x, T *f, int nx);
 
 template <class T> 
 class Composition02 : public Benchmark<T> {
@@ -51,15 +58,7 @@ class Composition02 : public Benchmark<T> {
             
             cublasCreate(&(this->handle));
 
-            char matrix_filename[50] = {};
-
-            snprintf(matrix_filename, 50, "./input_data/matrices/composition_%d.bin", _n);
-            this->use_rotation_matrix(matrix_filename, _n*_n*cf_num);
-
-            this->use_shift_vector("./input_data/shift_vectors/composition_shift.bin", _n*cf_num);            
-
             allocateMemory();
-
 
             float delta[3] = {20,10,10};
             float bias[3]  = {0, 200, 100};
@@ -71,6 +70,33 @@ class Composition02 : public Benchmark<T> {
             cudaMemcpyToSymbol(p_lambda_dev, lambda, cf_num*sizeof(float), 0, cudaMemcpyHostToDevice);
 
         }
+
+        Composition02(int _n, int _pop_size, char shift_filename[], char matrix_filename[]){
+            this->pop_size = _pop_size;
+            this->n = _n;
+
+            this->grid_size_shift = (_pop_size*_n)/MIN_OCCUPANCY + int((_pop_size*_n % MIN_OCCUPANCY) > 0);
+
+            this->kernel_launch_config(this->grid_size, this->block_shape, this->shared_mem_size);
+            
+            cublasCreate(&(this->handle));
+
+            this->use_rotation_matrix(matrix_filename, _n*_n*cf_num);
+            this->use_shift_vector(shift_filename, _n*cf_num);               
+
+            allocateMemory();
+
+            float delta[3] = {20,10,10};
+            float bias[3]  = {0, 200, 100};
+            float lambda[3] = {1, 1, 1};
+
+            // memcpys may ovewrite useful data in constant memory if multiple composition functions are instantiated
+            cudaMemcpyToSymbol(p_delta_dev, delta, cf_num*sizeof(float), 0, cudaMemcpyHostToDevice);
+            cudaMemcpyToSymbol(p_bias_dev, bias, cf_num*sizeof(float), 0, cudaMemcpyHostToDevice);
+            cudaMemcpyToSymbol(p_lambda_dev, lambda, cf_num*sizeof(float), 0, cudaMemcpyHostToDevice);
+
+        }
+
 
         ~Composition02(){
             freeMemory();
@@ -144,4 +170,134 @@ void Composition02<float>::transpose_fit(){
                  this->pop_size, 
                  this->p_tcfit_dev, 
                  cf_num);
+}
+
+template<>
+__global__ void hgbat_gpu<double>(double *x, double *f, int nx){
+    int i;
+    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
+    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
+
+    extern __shared__ double2 smemvec[];
+
+    double xi   = 0;
+    double2 sum  = {0, 0};
+
+    for(i = threadIdx.x; i < nx; i += blockDim.x){
+        xi = x[chromo_id*nx + i] - 1.0;
+
+        sum.x  += xi*xi;
+        sum.y  += xi;
+    }
+
+    smemvec[gene_block_id] = sum;
+    __syncthreads();
+    
+    for( i = blockDim.x / 2; i > 0; i >>= 1){
+        if(threadIdx.x < i){
+            smemvec[gene_block_id].x += smemvec[gene_block_id + i].x;
+            smemvec[gene_block_id].y += smemvec[gene_block_id + i].y;
+        }
+        __syncthreads();
+    }
+    
+    if(threadIdx.x == 0){
+        sum = smemvec[gene_block_id];
+
+        f[chromo_id] = sqrt(fabs(sum.x*sum.x - sum.y*sum.y)) + (0.5*sum.x + sum.y)/nx + 0.5;
+    }
+} 
+
+template<>
+__global__ void hgbat_gpu<float>(float *x, float *f, int nx){
+    int i;
+    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
+    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
+
+    extern __shared__ float2 smemvec[];
+
+    float xi   = 0;
+    float2 sum  = {0, 0};
+
+    for(i = threadIdx.x; i < nx; i += blockDim.x){
+        xi = x[chromo_id*nx + i] - 1.0;
+
+        sum.x  += xi*xi;
+        sum.y  += xi;
+    }
+
+    smemvec[gene_block_id] = sum;
+    __syncthreads();
+    
+    for( i = blockDim.x / 2; i > 0; i >>= 1){
+        if(threadIdx.x < i){
+            smemvec[gene_block_id].x += smemvec[gene_block_id + i].x;
+            smemvec[gene_block_id].y += smemvec[gene_block_id + i].y;
+        }
+        __syncthreads();
+    }
+    
+    if(threadIdx.x == 0){
+        sum = smemvec[gene_block_id];
+
+        f[chromo_id] = sqrt(fabs(sum.x*sum.x - sum.y*sum.y)) + (0.5*sum.x + sum.y)/nx + 0.5;
+    }
+} 
+
+template <typename T>
+__global__ void schwefel_gpu(T *x, T *f, int nx){
+    int i;
+    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
+    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
+    
+    extern __shared__ T s_mem[];
+
+    T sum = 0.0;
+    T zi;
+    for(i = threadIdx.x ; i < nx; i += blockDim.x){
+        zi = 4.209687462275036e+002 + x[chromo_id*nx + i];
+        T zi_fmod = fmod(zi, 500.0);
+        if(fabs(zi) <= 500.0){
+            sum += zi*sin(pow(fabs(zi),0.5));
+        } else if(zi > 500.0) {
+            sum += (500 - zi_fmod)*sin(pow(fabs(500 - zi_fmod), 0.5)) - (zi - 500)*(zi - 500)/(10000*nx);
+        } else{
+            sum += (-500.0+fmod(fabs(zi),500.0))*sin(pow(500.0-fmod(fabs(zi),500.0),0.5)) - (zi + 500)*(zi + 500)/(10000*nx);
+        }
+    }
+
+    s_mem[gene_block_id] = sum;
+    __syncthreads();
+    reduction(gene_block_id, s_mem);
+
+    if(threadIdx.x == 0){
+        f[chromo_id] = 4.189828872724338e+002 * nx - s_mem[gene_block_id];
+    }
+}
+
+template <typename T>
+__global__ void rastrigin_gpu(T *x, T *f, int nx){
+    int i;
+    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
+    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
+
+    extern __shared__ T s_mem[];
+
+    T xi = 0;
+    T value = 0;
+    
+    for(i = threadIdx.x; i < nx; i += blockDim.x){
+        xi = x[chromo_id*nx + i];
+
+        value += xi*xi - 10*cos(2*PI*xi) + 10;
+    }
+
+    s_mem[gene_block_id] = value;
+    __syncthreads();
+    
+    reduction(gene_block_id, s_mem);
+
+    if(threadIdx.x == 0){
+        f[chromo_id] = s_mem[gene_block_id];
+    }    
 }

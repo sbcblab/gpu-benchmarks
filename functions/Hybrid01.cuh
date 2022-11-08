@@ -5,9 +5,11 @@
 #include <stdio.h>
 #include "../benchmark_constants.cuh"
 #include "../gpu_constants.cuh"
-#include "../benchmark_kernels.cuh"
 #include "../vector_ops.cuh"
 #include "cublas_v2.h"
+
+template <typename T>
+__global__ void hf02_gpu(T *x, T *f, int nx);
 
 template <class T> 
 class Hybrid01 : public Benchmark<T> {
@@ -69,6 +71,95 @@ class Hybrid01 : public Benchmark<T> {
             hf02_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, p_f_dev, this->n);
         }
 
-
-
 };
+
+template <typename T>
+__global__ void hf02_gpu(T *x, T *f, int nx){
+    #define HF02_n1 0.4
+    #define HF02_n2 0.4
+    #define HF02_n3 0.2
+    
+    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
+    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
+
+    extern __shared__ T smem[];
+
+    T xi, x1;
+    T sum  = 0.0;
+    T sum2 = 0.0;
+    T fit;
+
+    int i = threadIdx.x;
+    int n_f = ceil(nx*HF02_n1);
+
+    x = &x[chromo_id*nx];
+
+    // bent-cigar
+
+    if( i < n_f ){
+        xi = x[i];
+        x1 = xi;
+        sum = xi*xi;
+    }
+
+    i += blockDim.x;
+    for(; i < n_f; i += blockDim.x){
+        xi = x[i];
+        sum += xi*xi;
+    }
+
+    smem[gene_block_id] = sum;
+    __syncthreads();
+    reduction(gene_block_id, smem);
+    
+    if(threadIdx.x == 0){
+        fit = 1e6*smem[gene_block_id] - 1e6*x1*x1 + x1*x1;
+    }
+
+
+    // hg-bat
+    i = threadIdx.x + n_f;
+    n_f += ceil(nx*HF02_n2);
+    for(; i < n_f; i += blockDim.x){
+        xi = x[i] - 1.0;
+
+        sum += xi*xi;
+        sum2 += xi;
+    }
+
+    smem[gene_block_id] = sum;
+    __syncthreads();
+    reduction(gene_block_id, smem);
+
+    if(threadIdx.x == 0){
+        sum = smem[gene_block_id];
+    }
+
+    smem[gene_block_id] = sum2;
+    __syncthreads();
+    reduction(gene_block_id, smem);
+
+    if(threadIdx.x == 0){
+        sum2 = smem[gene_block_id];
+        fit += sqrt(fabs(sum*sum - sum2*sum2)) + (0.5*sum + sum2)/nx + 0.5;
+    }
+
+  
+    // rastrigin
+    i = threadIdx.x + n_f;
+    sum = 0.0;
+    for(; i < nx; i += blockDim.x){
+        xi = x[i];
+
+        sum += xi*xi - 10*cos(2*PI*xi) + 10;
+    }
+
+    smem[gene_block_id] = sum;
+    __syncthreads();
+    reduction(gene_block_id, smem);
+
+    if(threadIdx.x == 0){
+        f[chromo_id] = smem[gene_block_id] + fit;
+    }
+}
+

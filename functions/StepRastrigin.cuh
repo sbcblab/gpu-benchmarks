@@ -5,9 +5,12 @@
 #include <stdio.h>
 #include "../benchmark_constants.cuh"
 #include "../gpu_constants.cuh"
-#include "../benchmark_kernels.cuh"
 #include "../vector_ops.cuh"
 #include "cublas_v2.h"
+
+
+template <typename T>
+__global__ void rastrigin_gpu(T *x, T *f, int nx);
 
 template <class T> 
 class StepRastrigin : public Benchmark<T> {
@@ -75,3 +78,31 @@ class StepRastrigin : public Benchmark<T> {
 
 
 };
+
+
+template <typename T>
+__global__ void rastrigin_gpu(T *x, T *f, int nx){
+    int i;
+    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
+    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
+
+    extern __shared__ T s_mem[];
+
+    T xi = 0;
+    T value = 0;
+    
+    for(i = threadIdx.x; i < nx; i += blockDim.x){
+        xi = x[chromo_id*nx + i];
+
+        value += xi*xi - 10*cos(2*PI*xi) + 10;
+    }
+
+    s_mem[gene_block_id] = value;
+    __syncthreads();
+    
+    reduction(gene_block_id, s_mem);
+
+    if(threadIdx.x == 0){
+        f[chromo_id] = s_mem[gene_block_id];
+    }    
+}

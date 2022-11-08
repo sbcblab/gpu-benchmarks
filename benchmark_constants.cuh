@@ -1,6 +1,9 @@
 #ifndef BENCH_CONSTANTS
 #define BENCH_CONSTANTS
 
+#define E  2.7182818284590452353602874713526625
+#define PI 3.1415926535897932384626433832795029
+
 // o = [oi1, oi2, ... , oiD]: shifted global optimum randomly distributed ind [-80, 80]^D
 #define OPT_BOUND 80.0
 

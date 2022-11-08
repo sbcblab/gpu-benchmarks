@@ -10,9 +10,6 @@
 #include "benchmark_constants.cuh"
 #include "benchmark_kernels.cuh"
 
-#define E  2.7182818284590452353602874713526625
-#define PI 3.1415926535897932384626433832795029
-
 namespace cg = cooperative_groups;
 
 
@@ -38,140 +35,11 @@ __device__ void reduction( int index, double *s_mem ){
     
 }
 
-__device__ double g_schaffer_f6(double x, double y){
-    double num = sin(sqrt(x*x + y*y))*sin(sqrt(x*x + y*y)) - 0.5;
-    double dem = (1 + 0.001*(x*x + y*y))*(1 + 0.001*(x*x + y*y));
-    return 0.5 + num/dem;
-}
-
 __device__ double w_levy(double x){
     return 1 + (x - 0.0)/4.0;
 }
 
 __global__ void schaffer_F6_gpu(double *x, double *f, int nx){
-
-}
-
-__global__ void zakharov_gpu(double *x, double *f, int nx){
-    int i;
-    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
-    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
-
-    extern __shared__ double2 smemvec[];
-
-    double2 sum = {0, 0};
-
-    double value = 0;
-    
-    for(i = threadIdx.x; i < nx; i += blockDim.x){
-        value = x[chromo_id*nx + i];
-
-        sum.x += value*value;
-        sum.y += 0.5*(i+1)*value;
-    }
-
-    smemvec[gene_block_id] = sum;
-    __syncthreads();
-    
-    for( i = blockDim.x / 2; i > 0; i >>= 1){
-        if(threadIdx.x < i){
-            smemvec[gene_block_id].x += smemvec[gene_block_id + i].x;
-            smemvec[gene_block_id].y += smemvec[gene_block_id + i].y;
-        }
-        __syncthreads();
-    }
-
-    if(threadIdx.x == 0){
-        sum = smemvec[gene_block_id];
-        sum.y = sum.y*sum.y;
-        f[chromo_id] = sum.x + sum.y + sum.y*sum.y; 
-    }
-
-}
-
-__global__ void rastrigin_gpu(double *x, double *f, int nx){
-    int i;
-    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
-    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
-
-    extern __shared__ double s_mem[];
-
-    double xi = 0;
-    double value = 0;
-    
-    for(i = threadIdx.x; i < nx; i += blockDim.x){
-        xi = x[chromo_id*nx + i];
-
-        value += xi*xi - 10*cos(2*PI*xi) + 10;
-    }
-
-    s_mem[gene_block_id] = value;
-    __syncthreads();
-    
-    reduction(gene_block_id, s_mem);
-
-    if(threadIdx.x == 0){
-        f[chromo_id] = s_mem[gene_block_id];
-    }    
-}
-
-__global__ void rosenbrock_gpu(double *x, double *f, int nx){
-    int i;
-    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
-    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
-    
-    extern __shared__ double s_mem[];
-
-    double xi = 0;
-    double x_next = 0;
-    double sum = 0;
-
-    if(threadIdx.x < nx){
-        xi = x[chromo_id*nx + threadIdx.x];
-        s_mem[gene_block_id] = xi;
-    }
-    __syncthreads();
-
-    if(threadIdx.x < nx){
-        if(threadIdx.x < blockDim.x - 1 ){ // if it is not the last thread
-            x_next = s_mem[gene_block_id + 1];
-            sum = 100*(xi*xi - x_next)*(xi*xi- x_next) + (xi - 1)*(xi - 1);
-        }
-    }
-
-
-    
-    const int n_blockdims = (int)(blockDim.x*ceil((float)nx/blockDim.x));
-
-    // utilizar um for loop que utilize todas as thread, e então um if i < nx 
-    for(i = threadIdx.x + blockDim.x; i < n_blockdims; i += blockDim.x){
-        if(i < nx){
-            s_mem[gene_block_id] = x[chromo_id*nx + i];
-        }
-        __syncthreads();
-
-        if(i < nx){
-            if(threadIdx.x == blockDim.x - 1){  // if last thread, compute previous steps
-                x_next = s_mem[gene_block_id - threadIdx.x];
-                sum += 100*(xi*xi - x_next)*(xi*xi - x_next) + (xi - 1)*(xi - 1);
-            }
-
-            xi = s_mem[gene_block_id];
-
-            if(threadIdx.x < blockDim.x - 1 ){ // if it is not the last thread
-                x_next = s_mem[gene_block_id + 1];
-                sum += 100*(xi*xi - x_next)*(xi*xi- x_next) + (xi - 1)*(xi - 1);
-            }
-        }
-    }
-
-    s_mem[gene_block_id] = sum;
-    __syncthreads();
-    reduction(gene_block_id, s_mem);
-
-    if(threadIdx.x == 0){
-        f[chromo_id] = s_mem[gene_block_id];
-    }
 
 }
 
@@ -324,46 +192,6 @@ __global__ void happycat_gpu(double *x, double *f, int nx){
     }
 } 
 
-__global__ void escaffer6_gpu(double *x, double *f, int nx){
-    int i;
-    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
-    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
-    
-    extern __shared__ double s_mem[];
-
-    double xi   = 0;
-    double xi_1 = 0;
-    double sum  = 0;
-    const int n_blockdims = (int)(blockDim.x*ceil((float)nx/blockDim.x));
-
-    if(threadIdx.x < nx){
-        xi = x[chromo_id*nx + (threadIdx.x % nx)];
-        xi_1 = x[chromo_id*nx + (threadIdx.x+1)%nx];
-
-        sum = g_schaffer_f6(xi, xi_1);
-    }
-
-    // every thread in a warp enters in this for 
-    for(i = blockDim.x + threadIdx.x; i < n_blockdims; i+= blockDim.x){
-        
-        if(i < nx){
-            xi = x[chromo_id*nx + (i % nx)];
-            xi_1 = x[chromo_id*nx + (i+1)%nx];
-
-            sum += g_schaffer_f6(xi, xi_1);
-        }
-        
-    }
-
-    s_mem[gene_block_id] = sum;
-    __syncthreads();
-    reduction(gene_block_id, s_mem);
-
-    if(threadIdx.x == 0){
-        f[chromo_id] = s_mem[gene_block_id];
-    }
-
-}
 
 __global__ void schaffer_F7_gpu(double *x, double *f, int nx){
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
