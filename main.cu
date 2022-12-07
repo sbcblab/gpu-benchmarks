@@ -24,21 +24,19 @@ int main(int argc, char *argv[]){
     
 
     double *x  = (double*)malloc(sizeof(double)*n*pop);
-    double *x_d;
+    // double *x_d = NULL;
 
-    cudaMalloc<double>(&x_d, sizeof(double)*n*pop);
+    // cudaMalloc<double>(&x_d, sizeof(double)*n*pop);
     // run_cpu_benchmark(x, n, pop, func_num);
 
-    for(int i =0; i < 20; i++){
-        init_random_vector<double>(x, n*pop, -100.0, 100.0);
-        
-        cudaMemcpy(x_d, x, sizeof(double)*n*pop, cudaMemcpyHostToDevice);
+    init_random_vector<double>(x, n*pop, -100.0, 100.0);
+    
+    // cudaMemcpy(x_d, x, sizeof(double)*n*pop, cudaMemcpyHostToDevice);
 
-        run_function(x_d, n, pop, func_num, ipb);    
-    }
+    run_function(x, n, pop, func_num, ipb);    
 
     free(x);
-    cudaFree(x_d);
+    // cudaFree(x_d);
     return 0;
 }
 /*
@@ -169,7 +167,7 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
             Zakharov<double> bench(n, pop);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
-            bench.compute(x_d, f_d);
+            bench.compute(x_d, f);
 
             break;
         }
@@ -258,8 +256,8 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
         }
     }
 
-    cudaMemcpy(f, f_d, sizeof(double)*pop, cudaMemcpyDeviceToHost);
-    
+    // cudaMemcpy(f, f_d, sizeof(double)*pop, cudaMemcpyDeviceToHost);
+    // cudaDeviceSynchronize();
     print_vector<double>(f, pop);
 
     cudaFree(f_d);

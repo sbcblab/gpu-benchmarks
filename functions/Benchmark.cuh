@@ -21,7 +21,7 @@ class Benchmark {
     protected:
         T *p_aux_dev; T *rot_dev;
         T *p_cfit_dev;
-        // T *p_x_dev; T *p_f_dev; 
+        T *p_x_dev = NULL; T *p_f_dev = NULL; 
         T *p_rotm_dev; T *p_shift_dev;
 
         cublasHandle_t handle;
@@ -29,6 +29,8 @@ class Benchmark {
         int n; 
         int pop_size;
         int func_num;
+        bool user_device_input_pointer = false;
+        bool user_device_output_pointer = false;
         bool shift_func = false;
         bool rot_func = false;
         
@@ -95,6 +97,79 @@ class Benchmark {
 
         }
 
+        void checkPointers(T *x, T *f){
+            cudaPointerAttributes input_attributes;
+            cudaPointerAttributes output_attributes;
+
+            cudaPointerGetAttributes(&input_attributes, x);
+            cudaPointerGetAttributes(&output_attributes, f);
+
+            switch(input_attributes.type){
+                case cudaMemoryType::cudaMemoryTypeHost: 
+                case cudaMemoryType::cudaMemoryTypeUnregistered:{
+
+                    if(p_x_dev == NULL){
+                        printf("Allocating memory on device for the input pointer\n");
+                        cudaMalloc<T>(&p_x_dev, sizeof(T)*pop_size*n);
+                    }
+                    
+                    cudaMemcpy(p_x_dev, x, sizeof(T)*pop_size*n, cudaMemcpyHostToDevice);
+                    
+                    break;
+                }
+                case cudaMemoryType::cudaMemoryTypeDevice: {
+                    p_x_dev = x;
+                    user_device_input_pointer = true;
+                    break;
+                }
+            }
+
+            switch(output_attributes.type){
+                case cudaMemoryType::cudaMemoryTypeHost: 
+                case cudaMemoryType::cudaMemoryTypeUnregistered: {
+                    
+                    printf("Allocating memory on device for the output pointer\n");
+                    if(p_f_dev == NULL){
+                        cudaMalloc<T>(&p_f_dev, sizeof(T)*pop_size);
+                    }
+                    break;
+                }
+                case cudaMemoryType::cudaMemoryTypeDevice: {
+                    p_f_dev = f;
+                    user_device_output_pointer = true;
+                    break;
+                }
+            }
+
+        }
+
+        void checkOutput(T *f){
+            cudaPointerAttributes output_attributes;
+
+            cudaPointerGetAttributes(&output_attributes, f);
+
+            switch(output_attributes.type){
+                case cudaMemoryType::cudaMemoryTypeHost: 
+                case cudaMemoryType::cudaMemoryTypeUnregistered: {
+                    cudaMemcpy(f, p_f_dev, sizeof(T)*pop_size, cudaMemcpyDeviceToHost);
+                    break;
+                }
+                case cudaMemoryType::cudaMemoryTypeDevice: {
+                    break;
+                }
+            }
+
+        }
+
+        void freeIO(){
+            if(p_x_dev != NULL && user_device_input_pointer == false){
+                cudaFree(p_x_dev);
+            }
+            
+            if(p_f_dev != NULL && user_device_output_pointer == false){
+                cudaFree(p_f_dev);
+            }
+        }
 
         void rotation(T *rot_matrix){
 

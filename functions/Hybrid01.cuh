@@ -27,6 +27,8 @@ class Hybrid01 : public Benchmark<T> {
             }
             
             if(this->shift_func) cudaFree(this->p_shift_dev);
+
+            this->freeIO();
             
         }
         
@@ -65,12 +67,14 @@ class Hybrid01 : public Benchmark<T> {
             freeMemory();
         }
 
-        void compute(T *p_x_dev, T *p_f_dev){
+        void compute(T *p_x, T *p_f){
             T* p_kernel_input;
             
+            this->checkPointers(p_x, p_f);
+
             //shift
             if(this->shift_func){
-                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_shift_dev, this->p_aux_dev, 1, this->n, this->pop_size);
+                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_shift_dev, this->p_aux_dev, 1, this->n, this->pop_size);
             } 
 
             if(this->rot_func){
@@ -80,7 +84,9 @@ class Hybrid01 : public Benchmark<T> {
                 p_kernel_input = this->p_aux_dev;
             }
             
-            hf02_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, p_f_dev, this->n);
+            hf02_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n);
+
+            this->checkOutput(p_f);
         }
 
 };

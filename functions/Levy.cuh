@@ -8,12 +8,13 @@
 #include "../vector_ops.cuh"
 #include "cublas_v2.h"
 
-
+#ifndef LEVY_KERNEL
 template <typename T>
 __device__ T w_levy(T x);
 
 template <typename T>
 __global__ void levy_gpu(T *x, T *f, int nx);
+#endif
 
 template <class T> 
 class Levy : public Benchmark<T> {
@@ -32,6 +33,8 @@ class Levy : public Benchmark<T> {
             }
             
             if(this->shift_func) cudaFree(this->p_shift_dev);
+
+            this->freeIO();
             
         }
         
@@ -70,15 +73,17 @@ class Levy : public Benchmark<T> {
             freeMemory();
         }
 
-        void compute(T *p_x_dev, T *p_f_dev){
+        void compute(T *p_x, T *p_f){
             T* p_kernel_input;
             
+            this->checkPointers(p_x, p_f);
+
             //shift
             if(this->shift_func){
-                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_shift_dev, this->p_aux_dev, LEVY_BOUND/X_BOUND, this->n, this->pop_size);
+                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_shift_dev, this->p_aux_dev, LEVY_BOUND/X_BOUND, this->n, this->pop_size);
             } else {
                 //shrink
-                shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_aux_dev, LEVY_BOUND/X_BOUND, (this->n)*(this->pop_size));
+                shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_aux_dev, LEVY_BOUND/X_BOUND, (this->n)*(this->pop_size));
             }
 
             if(this->rot_func){
@@ -88,13 +93,17 @@ class Levy : public Benchmark<T> {
                 p_kernel_input = this->p_aux_dev;
             }
             
-            levy_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, p_f_dev, this->n);
+            levy_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n);
+
+            this->checkOutput(p_f);
         }
 
 
 
 };
 
+#ifndef LEVY_KERNEL
+#define LEVY_KERNEL
 template <typename T>
 __global__ void levy_gpu(T *x, T *f, int nx){
     int i;
@@ -146,3 +155,4 @@ template <typename T>
 __device__ T w_levy(T x){
     return 1 + (x - 0.0)/4.0;
 }
+#endif

@@ -8,9 +8,16 @@
 #include "../vector_ops.cuh"
 #include "cublas_v2.h"
 
+#ifndef RASTRIGIN_KERNEL
+template <typename T>
+__global__ void step_shift_shrink_kernel(T *x, T* shift_vector, T* out, float shrink_rate, int nx, int pop);
+
+template <typename T>
+__global__ void step_shrink_kernel(T *x, T *out, float shrink_rate, int nx, int pop);
 
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx);
+#endif
 
 template <class T> 
 class StepRastrigin : public Benchmark<T> {
@@ -28,6 +35,8 @@ class StepRastrigin : public Benchmark<T> {
             }
             
             if(this->shift_func) cudaFree(this->p_shift_dev);
+
+            this->freeIO();
             
         }
         
@@ -66,15 +75,17 @@ class StepRastrigin : public Benchmark<T> {
             freeMemory();
         }
 
-        void compute(T *p_x_dev, T *p_f_dev){
+        void compute(T *p_x, T *p_f){
             T* p_kernel_input;
+
+            this->checkPointers(p_x, p_f);
             
             //shift
             if(this->shift_func){
-                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_shift_dev, this->p_aux_dev, RASTRIGIN_BOUND/X_BOUND, this->n, this->pop_size);
+                step_shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_shift_dev, this->p_aux_dev, RASTRIGIN_BOUND/X_BOUND, this->n, this->pop_size);
             } else {
                 //shrink
-                shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_aux_dev, RASTRIGIN_BOUND/X_BOUND, (this->n)*(this->pop_size));
+                step_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_aux_dev, RASTRIGIN_BOUND/X_BOUND, (this->n)*(this->pop_size));
             }
 
             if(this->rot_func){
@@ -84,13 +95,56 @@ class StepRastrigin : public Benchmark<T> {
                 p_kernel_input = this->p_aux_dev;
             }
             
-            rastrigin_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, p_f_dev, this->n);
+            rastrigin_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n);
+
+            this->checkOutput(p_f);
         }
 
 
 
 };
 
+#ifndef RASTRIGIN_KERNEL
+#define RASTRIGIN_KERNEL
+
+
+template <typename T>
+__global__ void step_shift_shrink_kernel(T *x, T* shift_vector, T* out, float shrink_rate, int nx, int pop){
+    int tid = threadIdx.x + blockDim.x*blockIdx.x;
+    T step_x;
+    T shift;
+
+    if(tid < n*pop){
+        // shift vector and then shrink
+        shift = shrink_rate*Opt_shift[tid % n];
+        step_x = shrink_rate*x[tid];
+
+		if (fabs(step_x-shift)>0.5){
+            step_x = shift + floor(2*(step_x-shift)+0.5)/2;
+        }
+        
+        out[tid] = (step_x - shift);
+    }
+}
+
+template <typename T>
+__global__ void step_shrink_kernel(T *x, T *out, float shrink_rate, int nx, int pop){
+    int tid = threadIdx.x + blockDim.x*blockIdx.x;
+    T step_x;
+    T shift;
+
+    if(tid < n*pop){
+        // shrink
+        shift = 0.0;
+        step_x = shrink_rate*x[tid];
+
+		if (fabs(step_x-shift)>0.5){
+            step_x = shift + floor(2*(step_x-shift)+0.5)/2;
+        }
+        
+        out[tid] = (step_x - shift);
+    }
+}
 
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx){
@@ -118,3 +172,4 @@ __global__ void rastrigin_gpu(T *x, T *f, int nx){
         f[chromo_id] = s_mem[gene_block_id];
     }    
 }
+#endif

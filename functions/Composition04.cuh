@@ -8,26 +8,38 @@
 #include "../vector_ops.cuh"
 #include "cublas_v2.h"
 
+#ifndef HGBAT_KERNEL
 template<typename T>
 __global__ void hgbat_gpu(T *x, T *f, int nx);
+#endif
 
+#ifndef SCHWEFEL_KERNEL
 template <typename T>
 __global__ void schwefel_gpu(T *x, T *f, int nx);
+#endif
 
+#ifndef RASTRIGIN_KERNEL
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx);
+#endif
 
+#ifndef BENTCIGAR_KERNEL
 template <typename T>
 __global__ void bent_cigar_gpu(T *x, T *f, int nx);
+#endif
 
+#ifndef ELLIPS_KERNEL
 template <typename T>
 __global__ void ellips_gpu(T *x, T *f, int nx);
+#endif
 
+#ifndef ESCAFFER6_KERNEL
 template <typename T>
 __global__ void escaffer6_gpu(T *x, T *f, int nx);
 
 template <typename T>
 __device__ T g_schaffer_f6(T x, T y);
+#endif
 
 template <class T> 
 class Composition04 : public Benchmark<T> {
@@ -51,6 +63,8 @@ class Composition04 : public Benchmark<T> {
             
             if(this->shift_func) cudaFree(this->p_shift_dev);
             if(this->rot_func)   cudaFree(this->p_rotm_dev);
+
+            this->freeIO();
         }
 
 
@@ -114,34 +128,37 @@ class Composition04 : public Benchmark<T> {
         }
 
 
-        void compute(T *p_x_dev, T *p_f_dev){
+        void compute(T *p_x, T *p_f){
+
+            this->checkPointers(p_x, p_f);
+            
             int offset = 0;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_shift_dev, this->p_aux_dev, HGBAT_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_shift_dev, this->p_aux_dev, HGBAT_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(this->p_rotm_dev);
             hgbat_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 1;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, RASTRIGIN_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, RASTRIGIN_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(&(this->p_rotm_dev[offset*this->n*this->n]));
             rastrigin_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 2;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, SCHWEFEL_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, SCHWEFEL_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(&(this->p_rotm_dev[offset*this->n*this->n]));
             schwefel_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 3;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, BENT_CIGAR_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, BENT_CIGAR_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(&(this->p_rotm_dev[offset*this->n*this->n]));
             bent_cigar_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 4;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, ELLIPSIS_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, ELLIPSIS_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(&(this->p_rotm_dev[offset*this->n*this->n]));
             ellips_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 5;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, ESCAFFER6_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, ESCAFFER6_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(&(this->p_rotm_dev[offset*this->n*this->n]));
             escaffer6_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
@@ -149,11 +166,13 @@ class Composition04 : public Benchmark<T> {
             transpose_fit();
             dim3 BLOCK(32, cf_num);
 
-            cfcal_gpu<<<this->pop_size, BLOCK>>>(  p_x_dev, 
-                                                    p_f_dev, 
+            cfcal_gpu<<<this->pop_size, BLOCK>>>(  this->p_x_dev, 
+                                                    this->p_f_dev, 
                                                     this->p_shift_dev, 
                                                     this->p_tcfit_dev, 
                                                     this->n );
+
+            this->checkOutput(p_f);
         }
 
 };
@@ -199,14 +218,15 @@ void Composition04<float>::transpose_fit(){
                  cf_num);
 }
 
-
+#ifndef HGBAT_KERNEL
+#define HGBAT_KERNEL
 template<>
 __global__ void hgbat_gpu<double>(double *x, double *f, int nx){
     int i;
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
 
-    extern __shared__ double2 smemvec[];
+    extern __shared__ double2 smemvec_d[];
 
     double xi   = 0;
     double2 sum  = {0, 0};
@@ -218,19 +238,19 @@ __global__ void hgbat_gpu<double>(double *x, double *f, int nx){
         sum.y  += xi;
     }
 
-    smemvec[gene_block_id] = sum;
+    smemvec_d[gene_block_id] = sum;
     __syncthreads();
     
     for( i = blockDim.x / 2; i > 0; i >>= 1){
         if(threadIdx.x < i){
-            smemvec[gene_block_id].x += smemvec[gene_block_id + i].x;
-            smemvec[gene_block_id].y += smemvec[gene_block_id + i].y;
+            smemvec_d[gene_block_id].x += smemvec_d[gene_block_id + i].x;
+            smemvec_d[gene_block_id].y += smemvec_d[gene_block_id + i].y;
         }
         __syncthreads();
     }
     
     if(threadIdx.x == 0){
-        sum = smemvec[gene_block_id];
+        sum = smemvec_d[gene_block_id];
 
         f[chromo_id] = sqrt(fabs(sum.x*sum.x - sum.y*sum.y)) + (0.5*sum.x + sum.y)/nx + 0.5;
     }
@@ -242,7 +262,7 @@ __global__ void hgbat_gpu<float>(float *x, float *f, int nx){
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
 
-    extern __shared__ float2 smemvec[];
+    extern __shared__ float2 smemvec_f[];
 
     float xi   = 0;
     float2 sum  = {0, 0};
@@ -254,24 +274,27 @@ __global__ void hgbat_gpu<float>(float *x, float *f, int nx){
         sum.y  += xi;
     }
 
-    smemvec[gene_block_id] = sum;
+    smemvec_f[gene_block_id] = sum;
     __syncthreads();
     
     for( i = blockDim.x / 2; i > 0; i >>= 1){
         if(threadIdx.x < i){
-            smemvec[gene_block_id].x += smemvec[gene_block_id + i].x;
-            smemvec[gene_block_id].y += smemvec[gene_block_id + i].y;
+            smemvec_f[gene_block_id].x += smemvec_f[gene_block_id + i].x;
+            smemvec_f[gene_block_id].y += smemvec_f[gene_block_id + i].y;
         }
         __syncthreads();
     }
     
     if(threadIdx.x == 0){
-        sum = smemvec[gene_block_id];
+        sum = smemvec_f[gene_block_id];
 
         f[chromo_id] = sqrt(fabs(sum.x*sum.x - sum.y*sum.y)) + (0.5*sum.x + sum.y)/nx + 0.5;
     }
 } 
+#endif
 
+#ifndef SCHWEFEL_KERNEL
+#define SCHWEFEL_KERNEL
 template <typename T>
 __global__ void schwefel_gpu(T *x, T *f, int nx){
     int i;
@@ -302,7 +325,10 @@ __global__ void schwefel_gpu(T *x, T *f, int nx){
         f[chromo_id] = 4.189828872724338e+002 * nx - s_mem[gene_block_id];
     }
 }
+#endif
 
+#ifndef RASTRIGIN_KERNEL
+#define RASTRIGIN_KERNEL
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx){
     int i;
@@ -329,7 +355,77 @@ __global__ void rastrigin_gpu(T *x, T *f, int nx){
         f[chromo_id] = s_mem[gene_block_id];
     }    
 }
+#endif
 
+#ifndef ELLIPS_KERNEL
+#define ELLIPS_KERNEL
+template <typename T>
+__global__ void ellips_gpu(T *x, T *f, int nx){
+    int i;
+    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
+    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x; 
+
+    extern __shared__ T s_mem[];
+
+    T xi = 0;
+    T value = 0;
+    
+    for(i = threadIdx.x; i < nx; i += blockDim.x){
+        xi = x[chromo_id*nx + i];
+
+        value += xi*xi*pow(10.0, 6.0*i/(nx-1));
+    }
+
+    s_mem[gene_block_id] = value;
+    __syncthreads();
+    
+    reduction(gene_block_id, s_mem);
+
+    if(threadIdx.x == 0){
+        f[chromo_id] = s_mem[gene_block_id];
+    }    
+}
+#endif
+
+#ifndef BENTCIGAR_KERNEL
+#define BENTCIGAR_KERNEL
+template <typename T>
+__global__ void bent_cigar_gpu(T *x, T *f, int nx){
+    int i;
+    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
+    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
+    
+    extern __shared__ T s_mem[];
+
+    T xi = 0.0;
+    T x1 = 0.0;
+    T sum = 0.0;
+
+    if(threadIdx.x < nx){
+        xi = x[chromo_id*nx + threadIdx.x];
+        x1 = xi; // first thread will keep this value
+        sum = xi*xi;
+    }
+
+    for(i = blockDim.x+threadIdx.x; i < nx; i+= blockDim.x){
+        xi = x[chromo_id*nx + i];
+        sum += xi*xi;  
+    }
+
+    s_mem[gene_block_id] = sum;
+    __syncthreads();
+
+    reduction(gene_block_id, s_mem);
+
+    if(threadIdx.x == 0){
+        f[chromo_id] = 1e6*s_mem[gene_block_id] - 1e6*x1*x1 + x1*x1;
+    }
+
+}
+#endif
+
+#ifndef ESCAFFER6_KERNEL
+#define ESCAFFER6_KERNEL
 template <typename T>
 __global__ void escaffer6_gpu(T *x, T *f, int nx){
     int i;
@@ -373,69 +469,9 @@ __global__ void escaffer6_gpu(T *x, T *f, int nx){
 }
 
 template <typename T>
-__global__ void ellips_gpu(T *x, T *f, int nx){
-    int i;
-    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
-    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x; 
-
-    extern __shared__ T s_mem[];
-
-    T xi = 0;
-    T value = 0;
-    
-    for(i = threadIdx.x; i < nx; i += blockDim.x){
-        xi = x[chromo_id*nx + i];
-
-        value += xi*xi*pow(10.0, 6.0*i/(nx-1));
-    }
-
-    s_mem[gene_block_id] = value;
-    __syncthreads();
-    
-    reduction(gene_block_id, s_mem);
-
-    if(threadIdx.x == 0){
-        f[chromo_id] = s_mem[gene_block_id];
-    }    
-}
-
-template <typename T>
-__global__ void bent_cigar_gpu(T *x, T *f, int nx){
-    int i;
-    int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
-    int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
-    
-    extern __shared__ T s_mem[];
-
-    T xi = 0.0;
-    T x1 = 0.0;
-    T sum = 0.0;
-
-    if(threadIdx.x < nx){
-        xi = x[chromo_id*nx + threadIdx.x];
-        x1 = xi; // first thread will keep this value
-        sum = xi*xi;
-    }
-
-    for(i = blockDim.x+threadIdx.x; i < nx; i+= blockDim.x){
-        xi = x[chromo_id*nx + i];
-        sum += xi*xi;  
-    }
-
-    s_mem[gene_block_id] = sum;
-    __syncthreads();
-
-    reduction(gene_block_id, s_mem);
-
-    if(threadIdx.x == 0){
-        f[chromo_id] = 1e6*s_mem[gene_block_id] - 1e6*x1*x1 + x1*x1;
-    }
-
-}
-
-template <typename T>
 __device__ T g_schaffer_f6(T x, T y){
     T num = sin(sqrt(x*x + y*y))*sin(sqrt(x*x + y*y)) - 0.5;
     T dem = (1 + 0.001*(x*x + y*y))*(1 + 0.001*(x*x + y*y));
     return 0.5 + num/dem;
 }
+#endif

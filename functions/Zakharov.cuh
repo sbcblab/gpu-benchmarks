@@ -8,8 +8,10 @@
 #include "../vector_ops.cuh"
 #include "cublas_v2.h"
 
+#ifndef ZAKHAROV_KERNEL
 template <typename T>
 __global__ void zakharov_gpu(T *x, T *f, int nx);
+#endif
 
 template <class T> 
 class Zakharov : public Benchmark<T> {
@@ -27,6 +29,8 @@ class Zakharov : public Benchmark<T> {
             }
             
             if(this->shift_func) cudaFree(this->p_shift_dev);
+
+            this->freeIO();
             
         }
         
@@ -65,15 +69,17 @@ class Zakharov : public Benchmark<T> {
             freeMemory();
         }
 
-        void compute(T *p_x_dev, T *p_f_dev){
+        void compute(T *p_x, T *p_f){
             T* p_kernel_input;
             
+            this->checkPointers(p_x, p_f);
+
             //shift
             if(this->shift_func){
-                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_shift_dev, this->p_aux_dev, ZAKHAROV_BOUND/X_BOUND, this->n, this->pop_size);
+                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_shift_dev, this->p_aux_dev, ZAKHAROV_BOUND/X_BOUND, this->n, this->pop_size);
             } else {
                 //shrink
-                shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_aux_dev, ZAKHAROV_BOUND/X_BOUND, (this->n)*(this->pop_size));
+                shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_aux_dev, ZAKHAROV_BOUND/X_BOUND, (this->n)*(this->pop_size));
             }
 
             if(this->rot_func){
@@ -83,21 +89,24 @@ class Zakharov : public Benchmark<T> {
                 p_kernel_input = this->p_aux_dev;
             }
             
-            zakharov_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, p_f_dev, this->n);
+            zakharov_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n);
+
+            this->checkOutput(p_f);
         }
 
 
 
 };
 
-
+#ifndef ZAKHAROV_KERNEL
+#define ZAKHAROV_KERNEL
 template <> 
 __global__ void zakharov_gpu<double>(double *x, double *f, int nx){
     int i;
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
 
-    extern __shared__ double2 smemvec[];
+    extern __shared__ double2 smemvec_d[];
 
     double2 sum = {0, 0};
 
@@ -110,19 +119,19 @@ __global__ void zakharov_gpu<double>(double *x, double *f, int nx){
         sum.y += 0.5*(i+1)*value;
     }
 
-    smemvec[gene_block_id] = sum;
+    smemvec_d[gene_block_id] = sum;
     __syncthreads();
     
     for( i = blockDim.x / 2; i > 0; i >>= 1){
         if(threadIdx.x < i){
-            smemvec[gene_block_id].x += smemvec[gene_block_id + i].x;
-            smemvec[gene_block_id].y += smemvec[gene_block_id + i].y;
+            smemvec_d[gene_block_id].x += smemvec_d[gene_block_id + i].x;
+            smemvec_d[gene_block_id].y += smemvec_d[gene_block_id + i].y;
         }
         __syncthreads();
     }
 
     if(threadIdx.x == 0){
-        sum = smemvec[gene_block_id];
+        sum = smemvec_d[gene_block_id];
         sum.y = sum.y*sum.y;
         f[chromo_id] = sum.x + sum.y + sum.y*sum.y; 
     }
@@ -135,7 +144,7 @@ __global__ void zakharov_gpu<float>(float *x, float *f, int nx){
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
 
-    extern __shared__ float2 smemvec[];
+    extern __shared__ float2 smemvec_f[];
 
     float2 sum = {0, 0};
 
@@ -148,21 +157,22 @@ __global__ void zakharov_gpu<float>(float *x, float *f, int nx){
         sum.y += 0.5*(i+1)*value;
     }
 
-    smemvec[gene_block_id] = sum;
+    smemvec_f[gene_block_id] = sum;
     __syncthreads();
     
     for( i = blockDim.x / 2; i > 0; i >>= 1){
         if(threadIdx.x < i){
-            smemvec[gene_block_id].x += smemvec[gene_block_id + i].x;
-            smemvec[gene_block_id].y += smemvec[gene_block_id + i].y;
+            smemvec_f[gene_block_id].x += smemvec_f[gene_block_id + i].x;
+            smemvec_f[gene_block_id].y += smemvec_f[gene_block_id + i].y;
         }
         __syncthreads();
     }
 
     if(threadIdx.x == 0){
-        sum = smemvec[gene_block_id];
+        sum = smemvec_f[gene_block_id];
         sum.y = sum.y*sum.y;
         f[chromo_id] = sum.x + sum.y + sum.y*sum.y; 
     }
 
 }
+#endif

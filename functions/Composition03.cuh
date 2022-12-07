@@ -9,23 +9,33 @@
 #include "cublas_v2.h"
 
 
+#ifndef ROSENBROCK_KERNEL
 template <typename T>
 __global__ void rosenbrock_gpu(T *x, T *f, int nx);
+#endif
 
+#ifndef SCHWEFEL_KERNEL
 template <typename T>
 __global__ void schwefel_gpu(T *x, T *f, int nx);
+#endif
 
+#ifndef RASTRIGIN_KERNEL
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx);
+#endif
 
+#ifndef GRIEWANK_KERNEL
 template <typename T>
 __global__ void griewank_gpu(T *x, T *f, int nx);
+#endif
 
+#ifndef ESCAFFER6_KERNEL
 template <typename T>
 __global__ void escaffer6_gpu(T *x, T *f, int nx);
 
 template <typename T>
 __device__ T g_schaffer_f6(T x, T y);
+#endif
 
 template <class T> 
 class Composition03 : public Benchmark<T> {
@@ -49,6 +59,8 @@ class Composition03 : public Benchmark<T> {
             
             if(this->shift_func) cudaFree(this->p_shift_dev);
             if(this->rot_func)   cudaFree(this->p_rotm_dev);
+
+            this->freeIO();
         }
 
 
@@ -112,41 +124,45 @@ class Composition03 : public Benchmark<T> {
         }
 
 
-        void compute(T *p_x_dev, T *p_f_dev){
+        void compute(T *p_x, T *p_f){
+
+            this->checkPointers(p_x, p_f);
 
             int offset = 0;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_shift_dev, this->p_aux_dev, ESCAFFER6_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_shift_dev, this->p_aux_dev, ESCAFFER6_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(this->p_rotm_dev);
             escaffer6_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 1;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, SCHWEFEL_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, SCHWEFEL_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(&(this->p_rotm_dev[offset*this->n*this->n]));
             schwefel_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 2;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, GRIEWANK_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, GRIEWANK_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(&(this->p_rotm_dev[offset*this->n*this->n]));
             griewank_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 3;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, ROSENBROCK_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, ROSENBROCK_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(&(this->p_rotm_dev[offset*this->n*this->n]));
             rosenbrock_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             offset = 4;
-            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, RASTRIGIN_BOUND/X_BOUND, this->n, this->pop_size);
+            shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, &(this->p_shift_dev[offset*(this->n)]), this->p_aux_dev, RASTRIGIN_BOUND/X_BOUND, this->n, this->pop_size);
             this->rotation(&(this->p_rotm_dev[offset*this->n*this->n]));
             rastrigin_gpu<<<this->grid_size, this->block_shape, 2*this->shared_mem_size>>>(this->rot_dev, &(this->p_cfit_dev[offset*this->pop_size]), this->n);
             
             transpose_fit();
             dim3 BLOCK(32, cf_num);
 
-            cfcal_gpu<<<this->pop_size, BLOCK>>>(  p_x_dev, 
-                                                    p_f_dev, 
+            cfcal_gpu<<<this->pop_size, BLOCK>>>(  this->p_x_dev, 
+                                                    this->p_f_dev, 
                                                     this->p_shift_dev, 
                                                     this->p_tcfit_dev, 
                                                     this->n );
+
+            this->checkOutput(p_f);
         }
 
 };
@@ -192,6 +208,8 @@ void Composition03<float>::transpose_fit(){
                  cf_num);
 }
 
+#ifndef GRIEWANK_KERNEL
+#define GRIEWANK_KERNEL
 template <typename T>
 __global__ void griewank_gpu(T *x, T *f, int nx){
     int i;
@@ -231,7 +249,10 @@ __global__ void griewank_gpu(T *x, T *f, int nx){
         f[chromo_id] = term1/4000 - term2 + 1;
     }
 }
+#endif
 
+#ifndef ROSENBROCK_KERNEL
+#define ROSENBROCK_KERNEL
 template <typename T>
 __global__ void rosenbrock_gpu(T *x, T *f, int nx){
     int i;
@@ -292,7 +313,10 @@ __global__ void rosenbrock_gpu(T *x, T *f, int nx){
     }
 
 }
+#endif
 
+#ifndef SCHWEFEL_KERNEL
+#define SCHWEFEL_KERNEL
 template <typename T>
 __global__ void schwefel_gpu(T *x, T *f, int nx){
     int i;
@@ -323,7 +347,10 @@ __global__ void schwefel_gpu(T *x, T *f, int nx){
         f[chromo_id] = 4.189828872724338e+002 * nx - s_mem[gene_block_id];
     }
 }
+#endif
 
+#ifndef RASTRIGIN_KERNEL
+#define RASTRIGIN_KERNEL
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx){
     int i;
@@ -350,7 +377,10 @@ __global__ void rastrigin_gpu(T *x, T *f, int nx){
         f[chromo_id] = s_mem[gene_block_id];
     }    
 }
+#endif
 
+#ifndef ESCAFFER6_KERNEL
+#define ESCAFFER6_KERNEL
 template <typename T>
 __global__ void escaffer6_gpu(T *x, T *f, int nx){
     int i;
@@ -399,3 +429,4 @@ __device__ T g_schaffer_f6(T x, T y){
     T dem = (1 + 0.001*(x*x + y*y))*(1 + 0.001*(x*x + y*y));
     return 0.5 + num/dem;
 }
+#endif

@@ -8,11 +8,13 @@
 #include "../vector_ops.cuh"
 #include "cublas_v2.h"
 
+#ifndef ESCAFFER6_KERNEL
 template <typename T>
 __device__ T g_schaffer_f6(T x, T y);
 
 template <typename T>
 __global__ void escaffer6_gpu(T *x, T *f, int nx);
+#endif
 
 template <class T> 
 class SchafferF6 : public Benchmark<T> {
@@ -31,6 +33,8 @@ class SchafferF6 : public Benchmark<T> {
             }
             
             if(this->shift_func) cudaFree(this->p_shift_dev);
+
+            this->freeIO();
             
         }
         
@@ -70,15 +74,17 @@ class SchafferF6 : public Benchmark<T> {
             freeMemory();
         }
 
-        void compute(T *p_x_dev, T *p_f_dev){
+        void compute(T *p_x, T *p_f){
             T* p_kernel_input;
+
+            this->checkPointers(p_x, p_f);
             
             //shift
             if(this->shift_func){
-                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_shift_dev, this->p_aux_dev, ESCAFFER6_BOUND/X_BOUND, this->n, this->pop_size);
+                shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_shift_dev, this->p_aux_dev, ESCAFFER6_BOUND/X_BOUND, this->n, this->pop_size);
             } else {
                 //shrink
-                shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(p_x_dev, this->p_aux_dev, ESCAFFER6_BOUND/X_BOUND, (this->n)*(this->pop_size));
+                shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_aux_dev, ESCAFFER6_BOUND/X_BOUND, (this->n)*(this->pop_size));
             }
 
             if(this->rot_func){
@@ -88,13 +94,18 @@ class SchafferF6 : public Benchmark<T> {
                 p_kernel_input = this->p_aux_dev;
             }
             
-            escaffer6_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, p_f_dev, this->n);
+            escaffer6_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n);
+            
+
+            this->checkOutput(p_f);
         }
 
 
 
 };
 
+#ifndef ESCAFFER6_KERNEL
+#define ESCAFFER6_KERNEL
 template <typename T>
 __global__ void escaffer6_gpu(T *x, T *f, int nx){
     int i;
@@ -143,3 +154,4 @@ __device__ T g_schaffer_f6(T x, T y){
     T dem = (1 + 0.001*(x*x + y*y))*(1 + 0.001*(x*x + y*y));
     return 0.5 + num/dem;
 }
+#endif

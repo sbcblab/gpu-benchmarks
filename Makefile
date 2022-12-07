@@ -1,13 +1,13 @@
 
 CC =nvcc
 CFLAGS =
-GPUFLAGS=-arch=sm_52 -lcublas
+GPUFLAGS=-arch=sm_52 -lcublas -lm
 DIR=build
 OUT_FILE=out.a
 
 all: main
 
-main: main.cu benchmark_kernels.o utils.o vector_ops.o
+main: main.cu utils.o vector_ops.o
 	$(CC) -o $(DIR)/$(OUT_FILE) $^ $(CFLAGS) $(GPUFLAGS)
 
 objects: 
