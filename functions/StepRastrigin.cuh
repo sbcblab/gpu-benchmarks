@@ -10,10 +10,10 @@
 
 #ifndef RASTRIGIN_KERNEL
 template <typename T>
-__global__ void step_shift_shrink_kernel(T *x, T* shift_vector, T* out, float shrink_rate, int nx, int pop);
+__global__ void step_shift_shrink_vector(T *x, T* shift_vector, T* out, float shrink_rate, int nx, int pop);
 
 template <typename T>
-__global__ void step_shrink_kernel(T *x, T *out, float shrink_rate, int nx, int pop);
+__global__ void step_shrink_vector(T *x, T *out, float shrink_rate, int nx, int pop);
 
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx);
@@ -85,7 +85,7 @@ class StepRastrigin : public Benchmark<T> {
                 step_shift_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_shift_dev, this->p_aux_dev, RASTRIGIN_BOUND/X_BOUND, this->n, this->pop_size);
             } else {
                 //shrink
-                step_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_aux_dev, RASTRIGIN_BOUND/X_BOUND, (this->n)*(this->pop_size));
+                step_shrink_vector<<<this->grid_size_shift, MIN_OCCUPANCY>>>(this->p_x_dev, this->p_aux_dev, RASTRIGIN_BOUND/X_BOUND, (this->n), (this->pop_size));
             }
 
             if(this->rot_func){
@@ -109,14 +109,14 @@ class StepRastrigin : public Benchmark<T> {
 
 
 template <typename T>
-__global__ void step_shift_shrink_kernel(T *x, T* shift_vector, T* out, float shrink_rate, int nx, int pop){
+__global__ void step_shift_shrink_vector(T *x, T* shift_vector, T* out, float shrink_rate, int nx, int pop){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     T step_x;
     T shift;
 
-    if(tid < n*pop){
+    if(tid < nx*pop){
         // shift vector and then shrink
-        shift = shrink_rate*Opt_shift[tid % n];
+        shift = shrink_rate*shift_vector[tid % nx];
         step_x = shrink_rate*x[tid];
 
 		if (fabs(step_x-shift)>0.5){
@@ -128,12 +128,12 @@ __global__ void step_shift_shrink_kernel(T *x, T* shift_vector, T* out, float sh
 }
 
 template <typename T>
-__global__ void step_shrink_kernel(T *x, T *out, float shrink_rate, int nx, int pop){
+__global__ void step_shrink_vector(T *x, T *out, float shrink_rate, int nx, int pop){
     int tid = threadIdx.x + blockDim.x*blockIdx.x;
     T step_x;
     T shift;
 
-    if(tid < n*pop){
+    if(tid < nx*pop){
         // shrink
         shift = 0.0;
         step_x = shrink_rate*x[tid];

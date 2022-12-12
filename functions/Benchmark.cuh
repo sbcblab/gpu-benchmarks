@@ -23,6 +23,7 @@ class Benchmark {
         T *p_cfit_dev;
         T *p_x_dev = NULL; T *p_f_dev = NULL; 
         T *p_rotm_dev; T *p_shift_dev;
+        int *p_shuffle_dev;
 
         cublasHandle_t handle;
 
@@ -33,6 +34,7 @@ class Benchmark {
         bool user_device_output_pointer = false;
         bool shift_func = false;
         bool rot_func = false;
+        bool shuffle_func = false;
         
         T func_boundary;
         
@@ -84,7 +86,10 @@ class Benchmark {
 
             M = (T*)malloc(sizeof(T)*count_elements);
             
+            // matrix pointer
             cudaMalloc<T>(&p_rotm_dev, count_elements*sizeof(T));
+            
+            // rotated solutions pointer
             cudaMalloc<T>(&rot_dev, n*pop_size*sizeof(T));
 
             init_vector_from_binary<T>(M, count_elements, filename);                      
@@ -95,6 +100,20 @@ class Benchmark {
 
             free(M);
 
+        }
+
+        void use_shuffle_vector(const char *filename, int count_elements){
+            int *S;
+
+            S = (int*)malloc(sizeof(int)*count_elements);
+            cudaMalloc<int>(&p_shuffle_dev, count_elements*sizeof(int));
+
+            init_vector_from_binary<int>(S, count_elements, filename);
+            cudaMemcpy(p_shuffle_dev, S, count_elements*sizeof(int), cudaMemcpyHostToDevice);
+
+            shuffle_func = true;
+
+            free(S);
         }
 
         void checkPointers(T *x, T *f){

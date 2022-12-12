@@ -57,7 +57,8 @@ class Hybrid02 : public Benchmark<T> {
             cublasCreate(&(this->handle));
 
             this->use_rotation_matrix(matrix_filename, _n*_n);
-            this->use_shift_vector(shift_filename, _n);            
+            this->use_shift_vector(shift_filename, _n);         
+            this->use_shuffle_vector(shuffle_filename, _n);          
 
             allocateMemory();
 
@@ -83,6 +84,8 @@ class Hybrid02 : public Benchmark<T> {
             } else {
                 p_kernel_input = this->p_aux_dev;
             }
+
+            shuffle_vector<<<this->pop_size, MIN_OCCUPANCY>>>(p_kernel_input, this->p_shuffle_dev, p_kernel_input, this->n, this->pop_size);
             
             hf10_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n);
 

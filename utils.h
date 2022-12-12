@@ -125,7 +125,15 @@ void print_vector(T *x, int n){
             printf("%f, ", x[i]);   
         }
 
-        printf("%f ]\n", x[n-1]);   
-    } 
+        printf("%f ]\n", x[n-1]);  
+
+    } else if(std::is_same<T, int>::value){
+        
+        for(int i = 0; i < n-1; i++){
+            printf("%d, ", x[i]);   
+        }
+
+        printf("%d ]\n", x[n-1]);      
+    }
 }
 #endif
