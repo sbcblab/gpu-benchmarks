@@ -58,6 +58,8 @@ void init_vector_from_binary(TYPE *V, int n, const char* filename){
 
     size_t ret = fread(V, n*sizeof(TYPE), 1, fp);
 
+    fclose(fp);
+
 }
 
 template <typename TYPE>
@@ -127,13 +129,6 @@ void print_vector(T *x, int n){
 
         printf("%f ]\n", x[n-1]);  
 
-    } else if(std::is_same<T, int>::value){
-        
-        for(int i = 0; i < n-1; i++){
-            printf("%d, ", x[i]);   
-        }
-
-        printf("%d ]\n", x[n-1]);      
     }
 }
 #endif

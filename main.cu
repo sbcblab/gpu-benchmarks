@@ -13,8 +13,50 @@
 #include "functions/Composition04.cuh"
 #include "utils.h"
 
+#include <algorithm>
+#include <random>
+
 void run_function(double *x_d, int n, int pop, int func_num, int ipb);
 // void run_cpu_benchmark(double *x, int n, int pop, int func_num);
+
+void test_shuffle(){
+
+    int indices[100];
+
+    for(int i = 0; i < 100; i ++){
+        indices[i] = i;
+    }
+
+    auto rng = std::default_random_engine {};
+    std::shuffle(std::begin(indices), std::end(indices), rng);
+
+    int * indices_d;
+    double *x_d;
+
+    double x[200];
+
+    for (int i = 0; i < 2; i++){
+        for(int j = 0; j < 100; j++){
+            x[i*100 + j] = (double)(i+1)*j;
+        }
+    }
+
+    cudaMalloc<int>(&indices_d, sizeof(int)*100);
+    cudaMalloc<double>(&x_d, sizeof(double)*200);
+
+    cudaMemcpy(indices_d, indices, sizeof(int)*100, cudaMemcpyHostToDevice);
+    cudaMemcpy(x_d, x, sizeof(double)*200, cudaMemcpyHostToDevice);
+
+    shuffle_vector<<<2, 100>>>(x_d, indices_d, x_d, 100, 2);
+
+    cudaMemcpy(x, x_d, sizeof(double)*200, cudaMemcpyDeviceToHost);
+
+    print_vector<double>(x, 100);
+    print_vector<double>(&x[100], 100);
+
+    cudaFree(x_d);
+    cudaFree(indices_d);
+}
 
 int main(int argc, char *argv[]){
     int ipb = read_ipb(argc, argv);
@@ -22,21 +64,19 @@ int main(int argc, char *argv[]){
     int pop = read_population(argc, argv);
     int func_num = read_function(argc, argv);
     
+    double *x_d = NULL;
 
     double *x  = (double*)malloc(sizeof(double)*n*pop);
-    // double *x_d = NULL;
-
-    // cudaMalloc<double>(&x_d, sizeof(double)*n*pop);
-    // run_cpu_benchmark(x, n, pop, func_num);
-
     init_random_vector<double>(x, n*pop, -100.0, 100.0);
+    cudaMalloc<double>(&x_d, sizeof(double)*n*pop);
+    // run_cpu_benchmark(x, n, pop, func_num);
     
-    // cudaMemcpy(x_d, x, sizeof(double)*n*pop, cudaMemcpyHostToDevice);
+    cudaMemcpy(x_d, x, sizeof(double)*n*pop, cudaMemcpyHostToDevice);
 
-    run_function(x, n, pop, func_num, ipb);    
+    run_function(x_d, n, pop, F_HYBRID3, ipb);    
 
     free(x);
-    // cudaFree(x_d);
+    cudaFree(x_d);
     return 0;
 }
 /*
@@ -159,6 +199,10 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
     
     cudaMalloc<double>(&f_d, sizeof(double)*pop);
 
+    char matrix_filename[50] = "input_data/matrices/basic_32.bin";
+    char shift_filename[50]  = "input_data/shift_vectors/basic_shift.bin";
+    char shuffle_filename[50] = "input_data/shuffle_vectors/shuffle_32.bin";
+
     dim3 evaluation_block(min(n/ipb, 1024/ipb), ipb);
     int evaluation_grid = pop/ipb + pop % ipb ;
 
@@ -167,7 +211,7 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
             Zakharov<double> bench(n, pop);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
-            bench.compute(x_d, f);
+            bench.compute(x_d, f_d);
 
             break;
         }
@@ -203,14 +247,14 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
             break;
         }
         case F_HYBRID1: {
-            Hybrid01<double> bench(n, pop);
+            Hybrid01<double> bench(n, pop, shuffle_filename, shift_filename, matrix_filename);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
             bench.compute(x_d, f_d);
             break;
         }
         case F_HYBRID2: {
-            Hybrid02<double> bench(n, pop);
+            Hybrid02<double> bench(n, pop, shuffle_filename, shift_filename, matrix_filename);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
             bench.compute(x_d, f_d);
@@ -218,7 +262,7 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
             break;
         }
         case F_HYBRID3: {
-            Hybrid03<double> bench(n, pop);
+            Hybrid03<double> bench(n, pop, shuffle_filename, shift_filename, matrix_filename);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
 
@@ -256,8 +300,8 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
         }
     }
 
-    // cudaMemcpy(f, f_d, sizeof(double)*pop, cudaMemcpyDeviceToHost);
-    // cudaDeviceSynchronize();
+    cudaMemcpy(f, f_d, sizeof(double)*pop, cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
     print_vector<double>(f, pop);
 
     cudaFree(f_d);

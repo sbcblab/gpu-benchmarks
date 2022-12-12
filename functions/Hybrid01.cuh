@@ -46,7 +46,7 @@ class Hybrid01 : public Benchmark<T> {
 
         }
 
-        Hybrid01(int _n, int _pop_size, char shift_filename[], char matrix_filename[]){
+        Hybrid01(int _n, int _pop_size, char shuffle_filename[], char shift_filename[], char matrix_filename[]){
             this->pop_size = _pop_size;
             this->n = _n;
 
@@ -85,7 +85,7 @@ class Hybrid01 : public Benchmark<T> {
                 p_kernel_input = this->p_aux_dev;
             }
 
-            shuffle_vector<<<this->pop_size, MIN_OCCUPANCY>>>(p_kernel_input, this->p_shuffle_dev, p_kernel_input, this->n, this->pop_size);
+            shuffle_vector<<<(this->pop_size), MIN_OCCUPANCY>>>(p_kernel_input, this->p_shuffle_dev, p_kernel_input, this->n, this->pop_size);
             
             hf02_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n);
 

@@ -109,6 +109,7 @@ class Benchmark {
             cudaMalloc<int>(&p_shuffle_dev, count_elements*sizeof(int));
 
             init_vector_from_binary<int>(S, count_elements, filename);
+
             cudaMemcpy(p_shuffle_dev, S, count_elements*sizeof(int), cudaMemcpyHostToDevice);
 
             shuffle_func = true;

@@ -79,10 +79,12 @@ int main(int argc, char *argv[]){
     std::random_device rd;
     std::mt19937 g(rd());
     std::shuffle(std::begin(indices), std::end(indices), rd);
+
     printf("%s\n", SHUFFLEOUT_NAME);
+
     // write vector to file
     FILE *fp = fopen(SHUFFLEOUT_NAME, "w+");
-    fwrite(indices.data(), DIM*sizeof(int), 1, fp);
+    fwrite(indices.data(), sizeof(int), DIM, fp);
     fclose(fp);
 
 #endif

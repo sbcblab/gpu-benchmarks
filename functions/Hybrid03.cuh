@@ -47,7 +47,7 @@ class Hybrid03 : public Benchmark<T> {
 
         }
 
-        Hybrid03(int _n, int _pop_size, char shift_filename[], char matrix_filename[]){
+        Hybrid03(int _n, int _pop_size, char shuffle_filename[], char shift_filename[], char matrix_filename[]){
             this->pop_size = _pop_size;
             this->n = _n;
 
