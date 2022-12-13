@@ -3,7 +3,7 @@ SRC=./source
 OUT_FILE=matrix.out
 OUT_VECTOR=shift_vec.out
 OUT_SHUFFLE=shuffle.out
-UTILS=..
+UTILS=.
 
 all: main.o
 

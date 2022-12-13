@@ -35,3 +35,11 @@ chmod +x ./shift_vector.sh
 ```
 
 For instance, the command `./shift_vector.sh double 10 80 shift.bin` will create a random vector of length 10 with values whithin the range [-80, 80]. It stores the vector into the file `./shift_vectors/shift.bin` 
+
+# Random Shuffle Vector Generation
+
+## Execution
+
+```
+    ./shuffle_vector.sh DIM_VECTOR FILENAME
+```
