@@ -113,7 +113,7 @@ __global__ void rosenbrock_gpu(T *x, T *f, int nx){
     T sum = 0;
 
     if(threadIdx.x < nx){
-        xi = x[chromo_id*nx + threadIdx.x];
+        xi = x[chromo_id*nx + threadIdx.x] + 1.0;
         s_mem[gene_block_id] = xi;
     }
     __syncthreads();
@@ -132,7 +132,7 @@ __global__ void rosenbrock_gpu(T *x, T *f, int nx){
     // utilizar um for loop que utilize todas as thread, e então um if i < nx 
     for(i = threadIdx.x + blockDim.x; i < n_blockdims; i += blockDim.x){
         if(i < nx){
-            s_mem[gene_block_id] = x[chromo_id*nx + i];
+            s_mem[gene_block_id] = x[chromo_id*nx + i] + 1.0;
         }
         __syncthreads();
 

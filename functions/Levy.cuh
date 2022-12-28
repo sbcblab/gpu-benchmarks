@@ -153,6 +153,6 @@ __global__ void levy_gpu(T *x, T *f, int nx){
 
 template <typename T>
 __device__ T w_levy(T x){
-    return 1 + (x - 0.0)/4.0;
+    return 1 + (x - 1.0)/4.0;
 }
 #endif
