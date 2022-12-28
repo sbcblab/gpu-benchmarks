@@ -1,13 +1,9 @@
 
 #pragma once
 
-#include "Benchmark.cuh"
 #include <stdio.h>
-#include "../benchmark_constants.cuh"
-#include "../gpu_constants.cuh"
-#include "../vector_ops.cuh"
-#include "cublas_v2.h"
 
+#include "Benchmark.cuh"
 
 template <typename T>
 __global__ void hf10_gpu(T *x, T *f, int nx);

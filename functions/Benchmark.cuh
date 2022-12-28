@@ -1,8 +1,9 @@
 #pragma once
 
 #include "cublas_v2.h"
-#include "../utils.h"
-#include "../gpu_constants.cuh"
+#include "../source/vector_ops.cuh"
+#include "../source/gpu_constants.cuh"
+#include "../source/benchmark_constants.cuh"
 
 #include <cooperative_groups.h>
 
@@ -50,7 +51,7 @@ class Benchmark {
 
         int max_threads_per_individual(){
             return min( MAX_BLOCK_SIZE, 
-                        next_pows(n)); // use a power of two threads because of the parallel reduction
+                        NEXT_POW2(n)); // use a power of two threads because of the parallel reduction
         }
 
         void kernel_launch_config(int &grid_size, dim3 &block_size, int &shared_mem_size){

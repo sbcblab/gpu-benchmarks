@@ -11,7 +11,7 @@
 #include "functions/Composition02.cuh"
 #include "functions/Composition03.cuh"
 #include "functions/Composition04.cuh"
-#include "utils.h"
+#include "aux_main.h"
 
 #include <algorithm>
 #include <random>
@@ -70,10 +70,13 @@ int main(int argc, char *argv[]){
     init_random_vector<double>(x, n*pop, -100.0, 100.0);
     cudaMalloc<double>(&x_d, sizeof(double)*n*pop);
     // run_cpu_benchmark(x, n, pop, func_num);
-    
+
+    printf("dimensions: %d\n", n);
+    printf("population: %d\n", pop);
+
     cudaMemcpy(x_d, x, sizeof(double)*n*pop, cudaMemcpyHostToDevice);
 
-    run_function(x_d, n, pop, F_HYBRID3, ipb);    
+    run_function(x_d, n, pop, func_num, ipb);    
 
     free(x);
     cudaFree(x_d);
@@ -199,10 +202,18 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
     
     cudaMalloc<double>(&f_d, sizeof(double)*pop);
 
-    char matrix_filename[50] = "input_data/matrices/basic_32.bin";
-    char shift_filename[50]  = "input_data/shift_vectors/basic_shift.bin";
-    char shuffle_filename[50] = "input_data/shuffle_vectors/shuffle_32.bin";
+    char matrix_filename[64];
+    char shift_filename[64];  
+    char shuffle_filename[64];
+    char composition_matrix_fn[64];
+    char composition_shift_fn[64];
 
+    sprintf(matrix_filename, "input_data/matrices/basic_%d.bin", n);
+    sprintf(shift_filename, "input_data/shift_vectors/basic_shift.bin");
+    sprintf(shuffle_filename, "input_data/shuffle_vectors/shuffle_%d.bin", n);
+    sprintf(composition_matrix_fn, "input_data/matrices/composition_%d.bin", n);
+    sprintf(composition_shift_fn, "input_data/shift_vectors/composition_shift.bin");
+    
     dim3 evaluation_block(min(n/ipb, 1024/ipb), ipb);
     int evaluation_grid = pop/ipb + pop % ipb ;
 
@@ -247,6 +258,7 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
             break;
         }
         case F_HYBRID1: {
+            printf("HYBRID 01\n");
             Hybrid01<double> bench(n, pop, shuffle_filename, shift_filename, matrix_filename);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
@@ -254,6 +266,7 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
             break;
         }
         case F_HYBRID2: {
+            printf("HYBRID 02\n");
             Hybrid02<double> bench(n, pop, shuffle_filename, shift_filename, matrix_filename);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
@@ -262,6 +275,7 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
             break;
         }
         case F_HYBRID3: {
+            printf("HYBRID 03\n");
             Hybrid03<double> bench(n, pop, shuffle_filename, shift_filename, matrix_filename);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
@@ -270,28 +284,32 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
             break;
         }
         case F_COMPOSITION1: {
-            Composition01<double> bench(n, pop);
+            printf("COMPOSITION 01\n");
+            Composition01<double> bench(n, pop, composition_shift_fn, composition_matrix_fn);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
             bench.compute(x_d, f_d);
             break;
         }
         case F_COMPOSITION2: {
-            Composition02<double> bench(n, pop);
+            printf("COMPOSITION 02\n");
+            Composition02<double> bench(n, pop, composition_shift_fn, composition_matrix_fn);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
             bench.compute(x_d, f_d);
             break;
         }
         case F_COMPOSITION3: {
-            Composition03<double> bench(n, pop);
+            printf("COMPOSITION 03\n");
+            Composition03<double> bench(n, pop, composition_shift_fn, composition_matrix_fn);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
             bench.compute(x_d, f_d);
             break;
         }
         case F_COMPOSITION4: {
-            Composition04<double> bench(n, pop);
+            printf("COMPOSITION 04\n");
+            Composition04<double> bench(n, pop, composition_shift_fn, composition_matrix_fn);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
             bench.compute(x_d, f_d);

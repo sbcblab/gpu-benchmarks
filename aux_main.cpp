@@ -1,6 +1,6 @@
 #include <math.h>
 #include <string.h>
-#include "utils.h"
+#include "aux_main.h"
 
 #define FLAG_NOT_FOUND  -1
 

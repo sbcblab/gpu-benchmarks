@@ -7,6 +7,9 @@
 
 #define WARPS_COUNT(x) ((x + (WARP_SIZE - 1)) / WARP_SIZE)
 
+#define NEXT_POW2(n) ((int)pow(2, ceil(log2((double)n))))
+
+
 template <typename T>
 __device__ void reduction_mult( int index, T *s_mem ){
     int i;
