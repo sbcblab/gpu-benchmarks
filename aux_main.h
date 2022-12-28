@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <random>
-#include <type_traits>
 #include <time.h>
 
 #ifndef UTILS

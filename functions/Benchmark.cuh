@@ -149,8 +149,8 @@ class Benchmark {
                 case cudaMemoryType::cudaMemoryTypeHost: 
                 case cudaMemoryType::cudaMemoryTypeUnregistered: {
                     
-                    printf("Allocating memory on device for the output pointer\n");
                     if(p_f_dev == NULL){
+                        printf("Allocating memory on device for the output pointer\n");
                         cudaMalloc<T>(&p_f_dev, sizeof(T)*pop_size);
                     }
                     break;
@@ -185,10 +185,12 @@ class Benchmark {
         void freeIO(){
             if(p_x_dev != NULL && user_device_input_pointer == false){
                 cudaFree(p_x_dev);
+                printf("Freeing memory on device from the input pointer\n");
             }
             
             if(p_f_dev != NULL && user_device_output_pointer == false){
                 cudaFree(p_f_dev);
+                printf("Freeing memory on device from the output pointer\n");
             }
         }
 
