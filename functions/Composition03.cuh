@@ -30,8 +30,11 @@ __global__ void griewank_gpu(T *x, T *f, int nx);
 template <typename T>
 __global__ void escaffer6_gpu(T *x, T *f, int nx);
 
+#ifndef ESCAFFER6_KERNEL
 template <typename T>
 __device__ T g_schaffer_f6(T x, T y);
+#endif
+
 #endif
 
 template <class T> 
@@ -421,10 +424,14 @@ __global__ void escaffer6_gpu(T *x, T *f, int nx){
 
 }
 
+#ifndef ESCAFFER6_KERNEL
+#define ESCAFFER6_KERNEL
 template <typename T>
 __device__ T g_schaffer_f6(T x, T y){
     T num = sin(sqrt(x*x + y*y))*sin(sqrt(x*x + y*y)) - 0.5;
     T dem = (1 + 0.001*(x*x + y*y))*(1 + 0.001*(x*x + y*y));
     return 0.5 + num/dem;
 }
+#endif
+
 #endif
