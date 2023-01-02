@@ -256,7 +256,7 @@ __global__ void hf06_gpu(T *x, T *f, int nx){
         sum2 = smem[gene_block_id];
         T c = 1.0 / float(nx-n_f);
 
-        f[chromo_id]  = fit + 20 - 20*exp(-0.2*sqrt( c * sum)) + E - exp(c * sum2);  
+        f[chromo_id]  = fit + 20 - 20*exp(-0.2*sqrt( c * sum)) + E - exp(c * sum2) + C_HYBRID3;  
 
     }
 }

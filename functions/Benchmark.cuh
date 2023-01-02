@@ -15,7 +15,7 @@ __device__ __constant__ float p_delta_dev[8];
 
 
 template<typename T>
-__global__ void cfcal_gpu(T *x, T *f, T *Os, T *fit, int nx);
+__global__ void cfcal_gpu(T *x, T *f, T *Os, T *fit, int nx, int constant_f);
 
 template <class T> 
 class Benchmark {
@@ -278,7 +278,7 @@ void Benchmark<float>::rotation(float *rot_matrix){
 }
 
 template<typename T>
-__global__ void cfcal_gpu(T *x, T *f, T *Os, T *fit, int nx){
+__global__ void cfcal_gpu(T *x, T *f, T *Os, T *fit, int nx, int constant_f){
     int i;
     cg::thread_block_tile<WARP_SIZE> group = cg::tiled_partition<WARP_SIZE>(cg::this_thread_block());
 
@@ -341,7 +341,7 @@ __global__ void cfcal_gpu(T *x, T *f, T *Os, T *fit, int nx){
         w_temp += group.shfl_down(w_temp, 1);
 
         if(group.thread_rank() == 0){
-            f[blockIdx.x] = w_temp/w_sum;
+            f[blockIdx.x] = w_temp/w_sum + constant_f;
         }
     }
 }

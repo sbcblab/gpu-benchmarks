@@ -6,7 +6,7 @@
 
 #ifndef ZAKHAROV_KERNEL
 template <typename T>
-__global__ void zakharov_gpu(T *x, T *f, int nx);
+__global__ void zakharov_gpu(T *x, T *f, int nx, int constant_f);
 #endif
 
 template <class T> 
@@ -85,7 +85,7 @@ class Zakharov : public Benchmark<T> {
                 p_kernel_input = this->p_aux_dev;
             }
             
-            zakharov_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n);
+            zakharov_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n, C_ZAKHAROV);
 
             this->checkOutput(p_f);
         }
@@ -97,7 +97,7 @@ class Zakharov : public Benchmark<T> {
 #ifndef ZAKHAROV_KERNEL
 #define ZAKHAROV_KERNEL
 template <> 
-__global__ void zakharov_gpu<double>(double *x, double *f, int nx){
+__global__ void zakharov_gpu<double>(double *x, double *f, int nx, int constant_f){
     int i;
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
@@ -129,13 +129,13 @@ __global__ void zakharov_gpu<double>(double *x, double *f, int nx){
     if(threadIdx.x == 0){
         sum = smemvec_d[gene_block_id];
         sum.y = sum.y*sum.y;
-        f[chromo_id] = sum.x + sum.y + sum.y*sum.y; 
+        f[chromo_id] = sum.x + sum.y + sum.y*sum.y + constant_f; 
     }
 
 }
 
 template <> 
-__global__ void zakharov_gpu<float>(float *x, float *f, int nx){
+__global__ void zakharov_gpu<float>(float *x, float *f, int nx, int constant_f){
     int i;
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
@@ -167,7 +167,7 @@ __global__ void zakharov_gpu<float>(float *x, float *f, int nx){
     if(threadIdx.x == 0){
         sum = smemvec_f[gene_block_id];
         sum.y = sum.y*sum.y;
-        f[chromo_id] = sum.x + sum.y + sum.y*sum.y; 
+        f[chromo_id] = sum.x + sum.y + sum.y*sum.y + constant_f; 
     }
 
 }

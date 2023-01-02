@@ -5,17 +5,17 @@
 
 #include "Benchmark.cuh"
 
-#ifndef HGBAT_KERNEL
+#ifndef HGBAT_KERNEL_NO_CONSTANT
 template<typename T>
 __global__ void hgbat_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef SCHWEFEL_KERNEL
+#ifndef SCHWEFEL_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void schwefel_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef RASTRIGIN_KERNEL
+#ifndef RASTRIGIN_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx);
 #endif
@@ -133,7 +133,8 @@ class Composition02 : public Benchmark<T> {
                                                     this->p_f_dev, 
                                                     this->p_shift_dev, 
                                                     this->p_tcfit_dev, 
-                                                    this->n );
+                                                    this->n,
+                                                    C_COMPOSITION2 );
 
             this->checkOutput(p_f);
         }
@@ -181,8 +182,8 @@ void Composition02<float>::transpose_fit(){
                  cf_num);
 }
 
-#ifndef HGBAT_KERNEL
-#define HGBAT_KERNEL
+#ifndef HGBAT_KERNEL_NO_CONSTANT
+#define HGBAT_KERNEL_NO_CONSTANT
 template<>
 __global__ void hgbat_gpu<double>(double *x, double *f, int nx){
     int i;
@@ -256,8 +257,8 @@ __global__ void hgbat_gpu<float>(float *x, float *f, int nx){
 } 
 #endif
 
-#ifndef SCHWEFEL_KERNEL
-#define SCHWEFEL_KERNEL
+#ifndef SCHWEFEL_KERNEL_NO_CONSTANT
+#define SCHWEFEL_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void schwefel_gpu(T *x, T *f, int nx){
     int i;
@@ -290,8 +291,8 @@ __global__ void schwefel_gpu(T *x, T *f, int nx){
 }
 #endif
 
-#ifndef RASTRIGIN_KERNEL
-#define RASTRIGIN_KERNEL
+#ifndef RASTRIGIN_KERNEL_NO_CONSTANT
+#define RASTRIGIN_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx){
     int i;

@@ -5,22 +5,22 @@
 
 #include "Benchmark.cuh"
 
-#ifndef ROSENBROCK_KERNEL
+#ifndef ROSENBROCK_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void rosenbrock_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef ELLIPS_KERNEL
+#ifndef ELLIPS_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void ellips_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef BENTCIGAR_KERNEL
+#ifndef BENTCIGAR_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void bent_cigar_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef DISCUS_KERNEL
+#ifndef DISCUS_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void discus_gpu(T *x, T *f, int nx);
 #endif
@@ -145,7 +145,8 @@ class Composition01 : public Benchmark<T> {
                                                     this->p_f_dev, 
                                                     this->p_shift_dev, 
                                                     this->p_tcfit_dev, 
-                                                    this->n );
+                                                    this->n,
+                                                    C_COMPOSITION1 );
             this->checkOutput(p_f);
         }
 
@@ -191,8 +192,8 @@ void Composition01<float>::transpose_fit(){
                  cf_num);
 }
 
-#ifndef ROSENBROCK_KERNEL
-#define ROSENBROCK_KERNEL
+#ifndef ROSENBROCK_KERNEL_NO_CONSTANT
+#define ROSENBROCK_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void rosenbrock_gpu(T *x, T *f, int nx){
     int i;
@@ -255,8 +256,8 @@ __global__ void rosenbrock_gpu(T *x, T *f, int nx){
 }
 #endif
 
-#ifndef ELLIPS_KERNEL
-#define ELLIPS_KERNEL
+#ifndef ELLIPS_KERNEL_NO_CONSTANT
+#define ELLIPS_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void ellips_gpu(T *x, T *f, int nx){
     int i;
@@ -285,8 +286,8 @@ __global__ void ellips_gpu(T *x, T *f, int nx){
 }
 #endif
 
-#ifndef BENTCIGAR_KERNEL
-#define BENTCIGAR_KERNEL
+#ifndef BENTCIGAR_KERNEL_NO_CONSTANT
+#define BENTCIGAR_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void bent_cigar_gpu(T *x, T *f, int nx){
     int i;
@@ -322,8 +323,8 @@ __global__ void bent_cigar_gpu(T *x, T *f, int nx){
 }
 #endif
 
-#ifndef DISCUS_KERNEL
-#define DISCUS_KERNEL
+#ifndef DISCUS_KERNEL_NO_CONSTANT
+#define DISCUS_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void discus_gpu(T *x, T *f, int nx){
     int i;

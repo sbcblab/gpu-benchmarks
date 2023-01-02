@@ -261,6 +261,6 @@ __global__ void hf10_gpu(T *x, T *f, int nx){
 
     if(threadIdx.x == 0){
 
-        f[chromo_id] = smem[gene_block_id]*smem[gene_block_id]/(((nx-n_f)-1)*((nx-n_f)-1)) + fit;
+        f[chromo_id] = smem[gene_block_id]*smem[gene_block_id]/(((nx-n_f)-1)*((nx-n_f)-1)) + fit + C_HYBRID2;
     }
 }

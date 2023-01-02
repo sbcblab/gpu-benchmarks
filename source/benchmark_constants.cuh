@@ -30,6 +30,22 @@
 #define SCHWEFEL_BOUND      1000.0
 #define ESCAFFER6_BOUND   100.0
 
+// the constant values to add in the function 
+enum func_constants{
+    C_ZAKHAROV      = 300,
+    C_ROSENBROCK    = 400,
+    C_SCHAFFER_F6   = 600,
+    C_RASTRIGIN     = 800,
+    C_LEVY          = 900,
+    C_HYBRID1       = 1800,
+    C_HYBRID2       = 2000,
+    C_HYBRID3       = 2200,
+    C_COMPOSITION1  = 2300,
+    C_COMPOSITION2  = 2400,
+    C_COMPOSITION3  = 2600,
+    C_COMPOSITION4  = 2700
+};
+
 enum func{
     F_ZAKHAROV,
     F_ROSENBROCK,

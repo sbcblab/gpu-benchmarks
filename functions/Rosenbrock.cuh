@@ -6,7 +6,7 @@
 
 #ifndef ROSENBROCK_KERNEL
 template <typename T>
-__global__ void rosenbrock_gpu(T *x, T *f, int nx);
+__global__ void rosenbrock_gpu(T *x, T *f, int nx, int constant_f);
 #endif
 
 template <class T> 
@@ -85,7 +85,7 @@ class Rosenbrock : public Benchmark<T> {
                 p_kernel_input = this->p_aux_dev;
             }
             
-            rosenbrock_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n);
+            rosenbrock_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n, C_ROSENBROCK);
 
             this->checkOutput(p_f);
         }
@@ -97,7 +97,7 @@ class Rosenbrock : public Benchmark<T> {
 #ifndef ROSENBROCK_KERNEL
 #define ROSENBROCK_KERNEL
 template <typename T>
-__global__ void rosenbrock_gpu(T *x, T *f, int nx){
+__global__ void rosenbrock_gpu(T *x, T *f, int nx, int constant_f){
     int i;
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
@@ -152,7 +152,7 @@ __global__ void rosenbrock_gpu(T *x, T *f, int nx){
     reduction(gene_block_id, s_mem);
 
     if(threadIdx.x == 0){
-        f[chromo_id] = s_mem[gene_block_id];
+        f[chromo_id] = s_mem[gene_block_id] + constant_f;
     }
 
 }

@@ -6,27 +6,27 @@
 #include "Benchmark.cuh"
 
 
-#ifndef ROSENBROCK_KERNEL
+#ifndef ROSENBROCK_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void rosenbrock_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef SCHWEFEL_KERNEL
+#ifndef SCHWEFEL_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void schwefel_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef RASTRIGIN_KERNEL
+#ifndef RASTRIGIN_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef GRIEWANK_KERNEL
+#ifndef GRIEWANK_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void griewank_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef ESCAFFER6_KERNEL
+#ifndef ESCAFFER6_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void escaffer6_gpu(T *x, T *f, int nx);
 
@@ -157,7 +157,8 @@ class Composition03 : public Benchmark<T> {
                                                     this->p_f_dev, 
                                                     this->p_shift_dev, 
                                                     this->p_tcfit_dev, 
-                                                    this->n );
+                                                    this->n,
+                                                    C_COMPOSITION3 );
 
             this->checkOutput(p_f);
         }
@@ -205,8 +206,8 @@ void Composition03<float>::transpose_fit(){
                  cf_num);
 }
 
-#ifndef GRIEWANK_KERNEL
-#define GRIEWANK_KERNEL
+#ifndef GRIEWANK_KERNEL_NO_CONSTANT
+#define GRIEWANK_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void griewank_gpu(T *x, T *f, int nx){
     int i;
@@ -248,8 +249,8 @@ __global__ void griewank_gpu(T *x, T *f, int nx){
 }
 #endif
 
-#ifndef ROSENBROCK_KERNEL
-#define ROSENBROCK_KERNEL
+#ifndef ROSENBROCK_KERNEL_NO_CONSTANT
+#define ROSENBROCK_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void rosenbrock_gpu(T *x, T *f, int nx){
     int i;
@@ -312,8 +313,8 @@ __global__ void rosenbrock_gpu(T *x, T *f, int nx){
 }
 #endif
 
-#ifndef SCHWEFEL_KERNEL
-#define SCHWEFEL_KERNEL
+#ifndef SCHWEFEL_KERNEL_NO_CONSTANT
+#define SCHWEFEL_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void schwefel_gpu(T *x, T *f, int nx){
     int i;
@@ -346,8 +347,8 @@ __global__ void schwefel_gpu(T *x, T *f, int nx){
 }
 #endif
 
-#ifndef RASTRIGIN_KERNEL
-#define RASTRIGIN_KERNEL
+#ifndef RASTRIGIN_KERNEL_NO_CONSTANT
+#define RASTRIGIN_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx){
     int i;
@@ -376,8 +377,8 @@ __global__ void rastrigin_gpu(T *x, T *f, int nx){
 }
 #endif
 
-#ifndef ESCAFFER6_KERNEL
-#define ESCAFFER6_KERNEL
+#ifndef ESCAFFER6_KERNEL_NO_CONSTANT
+#define ESCAFFER6_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void escaffer6_gpu(T *x, T *f, int nx){
     int i;

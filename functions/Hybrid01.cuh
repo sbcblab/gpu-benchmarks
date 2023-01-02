@@ -177,7 +177,7 @@ __global__ void hf02_gpu(T *x, T *f, int nx){
     reduction(gene_block_id, smem);
 
     if(threadIdx.x == 0){
-        f[chromo_id] = smem[gene_block_id] + fit;
+        f[chromo_id] = smem[gene_block_id] + fit + C_HYBRID1;
     }
 }
 

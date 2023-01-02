@@ -4,32 +4,32 @@
 #include <stdio.h>
 #include "Benchmark.cuh"
 
-#ifndef HGBAT_KERNEL
+#ifndef HGBAT_KERNEL_NO_CONSTANT
 template<typename T>
 __global__ void hgbat_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef SCHWEFEL_KERNEL
+#ifndef SCHWEFEL_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void schwefel_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef RASTRIGIN_KERNEL
+#ifndef RASTRIGIN_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef BENTCIGAR_KERNEL
+#ifndef BENTCIGAR_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void bent_cigar_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef ELLIPS_KERNEL
+#ifndef ELLIPS_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void ellips_gpu(T *x, T *f, int nx);
 #endif
 
-#ifndef ESCAFFER6_KERNEL
+#ifndef ESCAFFER6_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void escaffer6_gpu(T *x, T *f, int nx);
 
@@ -166,7 +166,8 @@ class Composition04 : public Benchmark<T> {
                                                     this->p_f_dev, 
                                                     this->p_shift_dev, 
                                                     this->p_tcfit_dev, 
-                                                    this->n );
+                                                    this->n,
+                                                    C_COMPOSITION4 );
 
             this->checkOutput(p_f);
         }
@@ -214,8 +215,8 @@ void Composition04<float>::transpose_fit(){
                  cf_num);
 }
 
-#ifndef HGBAT_KERNEL
-#define HGBAT_KERNEL
+#ifndef HGBAT_KERNEL_NO_CONSTANT
+#define HGBAT_KERNEL_NO_CONSTANT
 template<>
 __global__ void hgbat_gpu<double>(double *x, double *f, int nx){
     int i;
@@ -289,8 +290,8 @@ __global__ void hgbat_gpu<float>(float *x, float *f, int nx){
 } 
 #endif
 
-#ifndef SCHWEFEL_KERNEL
-#define SCHWEFEL_KERNEL
+#ifndef SCHWEFEL_KERNEL_NO_CONSTANT
+#define SCHWEFEL_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void schwefel_gpu(T *x, T *f, int nx){
     int i;
@@ -323,8 +324,8 @@ __global__ void schwefel_gpu(T *x, T *f, int nx){
 }
 #endif
 
-#ifndef RASTRIGIN_KERNEL
-#define RASTRIGIN_KERNEL
+#ifndef RASTRIGIN_KERNEL_NO_CONSTANT
+#define RASTRIGIN_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void rastrigin_gpu(T *x, T *f, int nx){
     int i;
@@ -353,8 +354,8 @@ __global__ void rastrigin_gpu(T *x, T *f, int nx){
 }
 #endif
 
-#ifndef ELLIPS_KERNEL
-#define ELLIPS_KERNEL
+#ifndef ELLIPS_KERNEL_NO_CONSTANT
+#define ELLIPS_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void ellips_gpu(T *x, T *f, int nx){
     int i;
@@ -383,8 +384,8 @@ __global__ void ellips_gpu(T *x, T *f, int nx){
 }
 #endif
 
-#ifndef BENTCIGAR_KERNEL
-#define BENTCIGAR_KERNEL
+#ifndef BENTCIGAR_KERNEL_NO_CONSTANT
+#define BENTCIGAR_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void bent_cigar_gpu(T *x, T *f, int nx){
     int i;
@@ -420,8 +421,8 @@ __global__ void bent_cigar_gpu(T *x, T *f, int nx){
 }
 #endif
 
-#ifndef ESCAFFER6_KERNEL
-#define ESCAFFER6_KERNEL
+#ifndef ESCAFFER6_KERNEL_NO_CONSTANT
+#define ESCAFFER6_KERNEL_NO_CONSTANT
 template <typename T>
 __global__ void escaffer6_gpu(T *x, T *f, int nx){
     int i;
