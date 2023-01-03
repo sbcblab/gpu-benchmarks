@@ -170,4 +170,18 @@ void print_vector(T *x, int n){
 
     }
 }
+
+template <class T>
+__device__ T fmod_device(T a, T b);
+
+template<>
+__device__ double fmod_device<double>(double a, double b){
+    return fmod(a, b);
+}
+
+
+template<>
+__device__ float fmod_device<float>(float a, float b){
+    return fmodf(a, b);
+}
 #endif
