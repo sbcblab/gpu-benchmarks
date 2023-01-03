@@ -64,7 +64,7 @@ class Composition03 : public Benchmark<T> {
         }
 
 
-        void transpose_fit(){
+        inline void transpose_fit(){
             
         }
 
@@ -170,7 +170,7 @@ class Composition03 : public Benchmark<T> {
 
 
 template<> 
-void Composition03<double>::transpose_fit(){
+inline void Composition03<double>::transpose_fit(){
     double alpha = 1.0;
     double beta  = 0.0;
 
@@ -190,7 +190,7 @@ void Composition03<double>::transpose_fit(){
 }
 
 template<> 
-void Composition03<float>::transpose_fit(){
+inline void Composition03<float>::transpose_fit(){
     float alpha = 1.0;
     float beta  = 0.0;
 

@@ -194,7 +194,7 @@ class Benchmark {
             }
         }
 
-        void rotation(T *rot_matrix){
+        inline void rotation(T *rot_matrix){
 
         }
 
@@ -262,7 +262,7 @@ class Benchmark {
 
 
 template<> 
-void Benchmark<double>::rotation(double *rot_matrix){
+inline void Benchmark<double>::rotation(double *rot_matrix){
     double alpha = 1.0;
     double beta  = 0.0;
 
@@ -270,7 +270,7 @@ void Benchmark<double>::rotation(double *rot_matrix){
 }
 
 template<> 
-void Benchmark<float>::rotation(float *rot_matrix){
+inline void Benchmark<float>::rotation(float *rot_matrix){
     float alpha = 1.0;
     float beta  = 0.0;
 

@@ -6,7 +6,7 @@
 
 #ifndef HGBAT_KERNEL_NO_CONSTANT
 template<typename T>
-__global__ void hgbat_gpu(T *x, T *f, int nx);
+inline __global__ void hgbat_gpu(T *x, T *f, int nx);
 #endif
 
 #ifndef SCHWEFEL_KERNEL_NO_CONSTANT
@@ -64,7 +64,7 @@ class Composition04 : public Benchmark<T> {
         }
 
 
-        void transpose_fit(){
+        inline void transpose_fit(){
             
         }
 
@@ -176,7 +176,7 @@ class Composition04 : public Benchmark<T> {
 
 
 template<> 
-void Composition04<double>::transpose_fit(){
+inline void Composition04<double>::transpose_fit(){
     double alpha = 1.0;
     double beta  = 0.0;
 
@@ -196,7 +196,7 @@ void Composition04<double>::transpose_fit(){
 }
 
 template<> 
-void Composition04<float>::transpose_fit(){
+inline void Composition04<float>::transpose_fit(){
     float alpha = 1.0;
     float beta  = 0.0;
 
@@ -218,7 +218,7 @@ void Composition04<float>::transpose_fit(){
 #ifndef HGBAT_KERNEL_NO_CONSTANT
 #define HGBAT_KERNEL_NO_CONSTANT
 template<>
-__global__ void hgbat_gpu<double>(double *x, double *f, int nx){
+inline __global__ void hgbat_gpu<double>(double *x, double *f, int nx){
     int i;
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
@@ -254,7 +254,7 @@ __global__ void hgbat_gpu<double>(double *x, double *f, int nx){
 } 
 
 template<>
-__global__ void hgbat_gpu<float>(float *x, float *f, int nx){
+inline __global__ void hgbat_gpu<float>(float *x, float *f, int nx){
     int i;
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
