@@ -210,13 +210,13 @@ __global__ void hf06_gpu(T *x, T *f, int nx){
     T zi;
     for( ; i < n_f; i += blockDim.x){
         zi = 4.209687462275036e+002 + x[i]*SCHWEFEL_BOUND/X_BOUND;
-        T zi_fmod = fmod_device(zi, 500.0);
+        T zi_fmod = fmod_device<T>(zi, 500.0);
         if(fabs(zi) <= 500.0){
             sum += zi*sin(pow(fabs(zi),0.5));
         } else if(zi > 500.0) {
             sum += (500 - zi_fmod)*sin(pow(fabs(500 - zi_fmod), 0.5)) - (zi - 500)*(zi - 500)/(10000*ceil(nx*HF06_n4));
         } else{
-            sum += (-500.0+fmod_device(fabs(zi),500.0))*sin(pow(500.0-fmod_device(fabs(zi),500.0),0.5)) - (zi + 500)*(zi + 500)/(10000*ceil(nx*HF06_n4));
+            sum += (-500.0+fmod_device<T>(fabs(zi),500.0))*sin(pow(500.0-fmod_device<T>(fabs(zi),500.0),0.5)) - (zi + 500)*(zi + 500)/(10000*ceil(nx*HF06_n4));
         }
     }
 
