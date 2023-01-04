@@ -88,7 +88,7 @@ class SchafferF7 : public Benchmark<T> {
                 p_kernel_input = this->p_aux_dev;
             }
             
-            schaffer_F7_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n, C_SCHAFFER_F6);
+            schaffer_F7_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n, C_SCHAFFER_F7);
             
 
             this->checkOutput(p_f);

@@ -47,18 +47,18 @@ enum func_constants{
 };
 
 enum func{
-    F_ZAKHAROV,
-    F_ROSENBROCK,
-    F_SCHAFFER_F7,
-    F_STEP_RASTRIGIN,
-    F_LEVY,
-    F_HYBRID1,
-    F_HYBRID2,
-    F_HYBRID3,
-    F_COMPOSITION1,
-    F_COMPOSITION2,
-    F_COMPOSITION3,
-    F_COMPOSITION4
+    F_ZAKHAROV          = 1,
+    F_ROSENBROCK        = 2,
+    F_SCHAFFER_F7       = 3,
+    F_STEP_RASTRIGIN    = 4,
+    F_LEVY              = 5,
+    F_HYBRID1           = 6,
+    F_HYBRID2           = 7,
+    F_HYBRID3           = 8,
+    F_COMPOSITION1      = 9,
+    F_COMPOSITION2      = 10,
+    F_COMPOSITION3      = 11,
+    F_COMPOSITION4      = 12
 };
 
 #endif
