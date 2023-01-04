@@ -97,7 +97,7 @@ class Composition01 : public Benchmark<T> {
 
             float delta[5]  {10, 20, 30, 40, 50};
             float bias[5]  = {0, 200, 300, 100, 400};
-            float lambda[5] = {10000/1e+4, 10000/1e+10, 10000/1e+10, 10000/1e+10, 10000/1e+10};
+            float lambda[5] = {10000/1e+4, 10000/1e+10, 10000/1e+30, 10000/1e+10, 10000/1e+10};
 
             // memcpys may ovewrite useful data in constant memory if multiple composition functions are instantiated
             cudaMemcpyToSymbol(p_delta_dev, delta, cf_num*sizeof(float), 0, cudaMemcpyHostToDevice);
@@ -207,7 +207,7 @@ __global__ void rosenbrock_gpu(T *x, T *f, int nx){
     T sum = 0;
 
     if(threadIdx.x < nx){
-        xi = x[chromo_id*nx + threadIdx.x];
+        xi = x[chromo_id*nx + threadIdx.x] + 1.0;
         s_mem[gene_block_id] = xi;
     }
     __syncthreads();
@@ -226,7 +226,7 @@ __global__ void rosenbrock_gpu(T *x, T *f, int nx){
     // utilizar um for loop que utilize todas as thread, e então um if i < nx 
     for(i = threadIdx.x + blockDim.x; i < n_blockdims; i += blockDim.x){
         if(i < nx){
-            s_mem[gene_block_id] = x[chromo_id*nx + i];
+            s_mem[gene_block_id] = x[chromo_id*nx + i] + 1.0;
         }
         __syncthreads();
 
