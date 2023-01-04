@@ -94,7 +94,7 @@ class Hybrid02 : public Benchmark<T> {
 
 template <typename T>
 __global__ void hf10_gpu(T *x, T *f, int nx){
-    #define HF10_n1 0.2
+    #define HF10_n1 0.1
     #define HF10_n2 0.2
     #define HF10_n3 0.2
     #define HF10_n4 0.2
