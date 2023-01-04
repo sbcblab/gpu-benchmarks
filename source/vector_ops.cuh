@@ -28,7 +28,7 @@ __global__ void shuffle_vector(T *x, int *shuffled_indices, T *out, int n, int p
     
     for(int i = threadIdx.x; i < n; i += blockDim.x){
         
-        x[i] = smem[shuffled_indices[i]]; 
+        x[i] = smem[shuffled_indices[i] - 1]; 
     }
 
 

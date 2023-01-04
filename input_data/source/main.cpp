@@ -71,7 +71,7 @@ int main(int argc, char *argv[]){
 #elif IS_MX == 3
     std::vector<int> indices;
 
-    for(int i = 0; i < DIM; i++){
+    for(int i = 1; i <= DIM; i++){
         indices.push_back(i);
     }
 
