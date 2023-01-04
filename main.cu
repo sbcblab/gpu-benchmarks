@@ -2,7 +2,7 @@
 #include "functions/Zakharov.cuh"
 #include "functions/Rosenbrock.cuh"
 #include "functions/Levy.cuh"
-#include "functions/SchafferF6.cuh"
+#include "functions/SchafferF7.cuh"
 #include "functions/StepRastrigin.cuh"
 #include "functions/Hybrid01.cuh"
 #include "functions/Hybrid02.cuh"
@@ -242,8 +242,8 @@ void run_function(double *x_d, int n, int pop, int func_num, int ipb){
 
             break;
         }
-        case F_SCHAFFER_F6:{
-            SchafferF6<double> bench(n, pop);
+        case F_SCHAFFER_F7:{
+            SchafferF7<double> bench(n, pop);
             bench.set_launch_config(evaluation_grid, evaluation_block);
 
             bench.compute(x_d, f_d);

@@ -34,7 +34,7 @@
 enum func_constants{
     C_ZAKHAROV      = 300,
     C_ROSENBROCK    = 400,
-    C_SCHAFFER_F6   = 600,
+    C_SCHAFFER_F7   = 600,
     C_RASTRIGIN     = 800,
     C_LEVY          = 900,
     C_HYBRID1       = 1800,
@@ -49,7 +49,7 @@ enum func_constants{
 enum func{
     F_ZAKHAROV,
     F_ROSENBROCK,
-    F_SCHAFFER_F6,
+    F_SCHAFFER_F7,
     F_STEP_RASTRIGIN,
     F_LEVY,
     F_HYBRID1,
