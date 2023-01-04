@@ -1,10 +1,16 @@
 #!/bin/bash
+
+type=$1
+dim=$2
+
 cd input_data
 
-./composition_matrix.sh $1 $2 composition_$1_$2.bin
+./composition_matrix.sh $type $dim composition_$type_$dim.bin
 
-./rot_matrix.sh $1 $2 basic_$1_$2.bin
+./rot_matrix.sh $type $dim basic_$1_$dim.bin
 
-./shift_vector.sh $1 $2 80 shift_$1_$2.bin
+./shift_vector.sh $type $dim 80 basic_$type_$dim.bin
 
-./shuffle_vector.sh $2 shuffle_$2.bin
+./shift_vector.sh $type $(($dim * 8)) 80 composition_$type_$dim.bin
+
+./shuffle_vector.sh $dim shuffle_$dim.bin
