@@ -5,16 +5,13 @@
 #include "Benchmark.cuh"
 
 
-#ifndef ESCAFFER6_KERNEL
+#ifndef SCHAFFERF7_KERNEL
 template <typename T>
-__device__ T g_schaffer_f6(T x, T y);
-
-template <typename T>
-__global__ void escaffer6_gpu(T *x, T *f, int nx, int constant_f);
+__global__ void schaffer_F7_gpu(T *x, T *f, int nx, int constant_f);
 #endif
 
 template <class T> 
-class SchafferF6 : public Benchmark<T> {
+class SchafferF7 : public Benchmark<T> {
     private:
         void allocateMemory(){
             cudaMalloc<T>(&(this->p_aux_dev), (this->n)*(this->pop_size)*sizeof(T));
@@ -38,7 +35,7 @@ class SchafferF6 : public Benchmark<T> {
 
     public:
         
-        SchafferF6(int _n, int _pop_size){
+        SchafferF7(int _n, int _pop_size){
             this->pop_size = _pop_size;
             this->n = _n;
 
@@ -50,7 +47,7 @@ class SchafferF6 : public Benchmark<T> {
 
         }
 
-        SchafferF6(int _n, int _pop_size, char shift_filename[], char matrix_filename[]){
+        SchafferF7(int _n, int _pop_size, char shift_filename[], char matrix_filename[]){
             this->pop_size = _pop_size;
             this->n = _n;
 
@@ -67,7 +64,7 @@ class SchafferF6 : public Benchmark<T> {
 
         }
 
-        ~SchafferF6(){
+        ~SchafferF7(){
             freeMemory();
         }
 
@@ -91,7 +88,7 @@ class SchafferF6 : public Benchmark<T> {
                 p_kernel_input = this->p_aux_dev;
             }
             
-            escaffer6_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n, C_SCHAFFER_F6);
+            schaffer_F7_gpu<<<this->grid_size, this->block_shape, 2*(this->shared_mem_size)>>>(p_kernel_input, this->p_f_dev, this->n, C_SCHAFFER_F6);
             
 
             this->checkOutput(p_f);
@@ -101,54 +98,37 @@ class SchafferF6 : public Benchmark<T> {
 
 };
 
-#ifndef ESCAFFER6_KERNEL
-#define ESCAFFER6_KERNEL
+#ifndef SCHAFFERF7_KERNEL
+#define SCHAFFERF7_KERNEL
 template <typename T>
-__global__ void escaffer6_gpu(T *x, T *f, int nx, int constant_f){
-    int i;
+__global__ void schaffer_F7_gpu(T *x, T *f, int nx, int constant_f){
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
-    
+
     extern __shared__ T s_mem[];
 
-    T xi   = 0;
-    T xi_1 = 0;
-    T sum  = 0;
-    const int n_blockdims = (int)(blockDim.x*ceil((float)nx/blockDim.x));
+    T sum = 0.0;
 
-    if(threadIdx.x < nx){
-        xi = x[chromo_id*nx + (threadIdx.x % nx)];
-        xi_1 = x[chromo_id*nx + (threadIdx.x+1)%nx];
+    s_mem[gene_block_id] = 0.0;
+    __syncthreads(); 
 
-        sum = g_schaffer_f6(xi, xi_1);
-    }
-
-    // every thread in a warp enters in this for 
-    for(i = blockDim.x + threadIdx.x; i < n_blockdims; i+= blockDim.x){
         
-        if(i < nx){
-            xi = x[chromo_id*nx + (i % nx)];
-            xi_1 = x[chromo_id*nx + (i+1)%nx];
-
-            sum += g_schaffer_f6(xi, xi_1);
-        }
+    for(int i = threadIdx.x; i < nx - 1; i += blockDim.x){
+        // talvez a cache ajude nessa operação
+        T si = pow(x[chromo_id*nx + i]*x[chromo_id*nx + i] + x[chromo_id*nx + i +1]*x[chromo_id*nx + i + 1], 0.5);
+        sum += pow(si, 0.5) + pow(si, 0.5)*sin(50.0*pow(si, 0.2))*sin(50.0*pow(si, 0.2));
         
     }
 
     s_mem[gene_block_id] = sum;
     __syncthreads();
+
     reduction(gene_block_id, s_mem);
 
     if(threadIdx.x == 0){
-        f[chromo_id] = s_mem[gene_block_id] + constant_f;
+
+        f[chromo_id] = s_mem[gene_block_id]*s_mem[gene_block_id]/((nx-1)*(nx-1)) + constant_f;
     }
-
-}
-
-template <typename T>
-__device__ T g_schaffer_f6(T x, T y){
-    T num = sin(sqrt(x*x + y*y))*sin(sqrt(x*x + y*y)) - 0.5;
-    T dem = (1 + 0.001*(x*x + y*y))*(1 + 0.001*(x*x + y*y));
-    return 0.5 + num/dem;
+    
 }
 #endif
