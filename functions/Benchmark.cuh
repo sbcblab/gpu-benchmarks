@@ -61,7 +61,7 @@ class Benchmark {
             grid_size       = pop_size/chromosomes_p_block;
             block_size.x    = threads_p_individual;
             block_size.y    = chromosomes_p_block;
-            shared_mem_size = chromosomes_p_block*threads_p_individual*sizeof(double);
+            shared_mem_size = chromosomes_p_block*threads_p_individual*sizeof(T);
     
         }
 
@@ -247,6 +247,7 @@ class Benchmark {
         void set_launch_config(int grid, dim3 block){
             grid_size = grid;
             block_shape = block;
+            shared_mem_size = block.x*block.y*sizeof(T);
         }
 
         dim3 getBlockSize(){
