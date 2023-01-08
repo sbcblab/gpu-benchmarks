@@ -139,7 +139,7 @@ __global__ void hf02_gpu(T *x, T *f, int nx){
     i = threadIdx.x + n_f;
     n_f += ceil(nx*HF02_n2);
     for(; i < n_f; i += blockDim.x){
-        xi = x[i] - 1.0;
+        xi = x[i]*HGBAT_BOUND/X_BOUND - 1.0;
 
         sum += xi*xi;
         sum2 += xi;
@@ -167,7 +167,7 @@ __global__ void hf02_gpu(T *x, T *f, int nx){
     i = threadIdx.x + n_f;
     sum = 0.0;
     for(; i < nx; i += blockDim.x){
-        xi = x[i];
+        xi = x[i]*RASTRIGIN_BOUND/X_BOUND;
 
         sum += xi*xi - 10*cos(2*PI*xi) + 10;
     }
