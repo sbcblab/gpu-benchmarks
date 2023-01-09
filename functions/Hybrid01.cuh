@@ -161,7 +161,7 @@ __global__ void hf02_gpu(T *x, T *f, int nx){
 
     if(threadIdx.x == 0){
         sum2 = smem[gene_block_id];
-        fit += sqrt(fabs(sum*sum - sum2*sum2)) + (0.5*sum + sum2)/ceil(nx*HF02_n2); + 0.5;
+        fit += sqrt(fabs(sum*sum - sum2*sum2)) + (0.5*sum + sum2)/ceil(nx*HF02_n2) + 0.5;
     }
 
   
