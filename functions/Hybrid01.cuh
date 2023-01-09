@@ -138,6 +138,8 @@ __global__ void hf02_gpu(T *x, T *f, int nx){
     // hg-bat
     i = threadIdx.x + n_f;
     n_f += ceil(nx*HF02_n2);
+    sum = 0.0;
+    sum2 = 0.0;
     for(; i < n_f; i += blockDim.x){
         xi = x[i]*HGBAT_BOUND/X_BOUND - 1.0;
 
@@ -159,7 +161,7 @@ __global__ void hf02_gpu(T *x, T *f, int nx){
 
     if(threadIdx.x == 0){
         sum2 = smem[gene_block_id];
-        fit += sqrt(fabs(sum*sum - sum2*sum2)) + (0.5*sum + sum2)/nx + 0.5;
+        fit += sqrt(fabs(sum*sum - sum2*sum2)) + (0.5*sum + sum2)/ceil(nx*HF02_n2); + 0.5;
     }
 
   
