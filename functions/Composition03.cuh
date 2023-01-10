@@ -266,36 +266,37 @@ __global__ void rosenbrock_gpu(T *x, T *f, int nx){
     T x_next = 0;
     T sum = 0;
 
+    x = &x[chromo_id*nx];
+
     if(threadIdx.x < nx){
-        xi = x[chromo_id*nx + threadIdx.x] + 1.0;
+        xi = x[ threadIdx.x ] + 1.0;
         s_mem[gene_block_id] = xi;
     }
     __syncthreads();
 
-    if(threadIdx.x < nx){
+    if(threadIdx.x < nx -1){
         if(threadIdx.x < blockDim.x - 1 ){ // if it is not the last thread
             x_next = s_mem[gene_block_id + 1];
             sum = 100*(xi*xi - x_next)*(xi*xi- x_next) + (xi - 1)*(xi - 1);
         }
     }
 
-
-    
     const int n_blockdims = (int)(blockDim.x*ceil((float)nx/blockDim.x));
 
     // utilizar um for loop que utilize todas as thread, e então um if i < nx 
     for(i = threadIdx.x + blockDim.x; i < n_blockdims; i += blockDim.x){
         if(i < nx){
-            s_mem[gene_block_id] = x[chromo_id*nx + i] + 1.0;
+            s_mem[gene_block_id] = x[i] + 1.0;
         }
         __syncthreads();
 
-        if(i < nx){
-            if(threadIdx.x == blockDim.x - 1){  // if last thread, compute previous steps
-                x_next = s_mem[gene_block_id - threadIdx.x];
-                sum += 100*(xi*xi - x_next)*(xi*xi - x_next) + (xi - 1)*(xi - 1);
-            }
+        if(threadIdx.x == blockDim.x - 1){  // if last thread, compute previous steps
+            x_next = s_mem[gene_block_id - threadIdx.x];
+            sum += 100*(xi*xi - x_next)*(xi*xi - x_next) + (xi - 1)*(xi - 1);
+        }
 
+        if(i < nx - 1){
+            
             xi = s_mem[gene_block_id];
 
             if(threadIdx.x < blockDim.x - 1 ){ // if it is not the last thread
