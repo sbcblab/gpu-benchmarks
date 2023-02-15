@@ -2,19 +2,19 @@
 #ifndef __CEC2023_TESTS__
 #define __CEC2023_TESTS__
 
-#include <Zakharov.cuh>
-#include <Rosenbrock.cuh>
-#include <StepRastrigin.cuh>
-#include <SchafferF7.cuh>
-#include <Levy.cuh>
-#include <Hybrid01.cuh>
-#include <Hybrid02.cuh>
-#include <Hybrid03.cuh>
-#include <Composition01.cuh>
-#include <Composition02.cuh>
-#include <Composition03.cuh>
-#include <Composition04.cuh>
-#include <Benchmark.cuh>
+#include "../functions/Zakharov.cuh"
+#include "../functions/Rosenbrock.cuh"
+#include "../functions/StepRastrigin.cuh"
+#include "../functions/SchafferF7.cuh"
+#include "../functions/Levy.cuh"
+#include "../functions/Hybrid01.cuh"
+#include "../functions/Hybrid02.cuh"
+#include "../functions/Hybrid03.cuh"
+#include "../functions/Composition01.cuh"
+#include "../functions/Composition02.cuh"
+#include "../functions/Composition03.cuh"
+#include "../functions/Composition04.cuh"
+#include "../functions/Benchmark.cuh"
 
 template <typename T>
 Benchmark<T> *createBenchmark(int n, int pop_size, int func_id, char *ShuffleFileName, char *ShiftFileName, char *MatrixFileName)
