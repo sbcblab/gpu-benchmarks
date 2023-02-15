@@ -98,7 +98,7 @@ class Rosenbrock : public Benchmark<T> {
 #define ROSENBROCK_KERNEL
 template <typename T>
 __global__ void rosenbrock_gpu(T *x, T *f, int nx, int constant_f){
-        int i;
+    int i;
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
     
