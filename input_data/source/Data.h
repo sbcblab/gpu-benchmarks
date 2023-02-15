@@ -80,11 +80,12 @@ class VectorData{
 template<typename T, size_t size_array>
 class SquareMatrixData{
 	private:
-		std::array<T, size_array*size_array> d;
+		std::vector<T> d;
 		int n;
 
 	public:
 		SquareMatrixData(){
+			d.resize(size_array*size_array);
 			n = size_array;
 		}
 		virtual ~SquareMatrixData(){}

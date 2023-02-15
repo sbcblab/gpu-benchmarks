@@ -308,9 +308,11 @@ __global__ void schwefel_gpu(T *x, T *f, int nx){
         if(fabs(zi) <= 500.0){
             sum += zi*sin(pow(fabs(zi),0.5));
         } else if(zi > 500.0) {
-            sum += (500 - zi_fmod)*sin(pow(fabs(500 - zi_fmod), 0.5)) - (zi - 500)*(zi - 500)/(10000*nx);
+            // sum += (500 - zi_fmod)*sin(pow(fabs(500 - zi_fmod), 0.5)) - (zi - 500)*(zi - 500)/(10000*nx);
+            sum += (500 - zi_fmod)*sin(pow((500 - zi_fmod), 0.5)) - (zi - 500)*(zi - 500)/(10000*nx);
+            // (500.0-fmod(z[i],500))*sin(pow(500.0-fmod(z[i],500),0.5));
         } else{
-            sum += (-500.0+fmod(fabs(zi),500.0))*sin(pow(500.0-fmod(fabs(zi),500.0),0.5)) - (zi + 500)*(zi + 500)/(10000*nx);
+            sum += (-500.0+fmod_device<T>(fabs(zi),500.0))*sin(pow(500.0-fmod_device<T>(fabs(zi),500.0),0.5)) - (zi + 500)*(zi + 500)/(10000*nx);
         }
     }
 
