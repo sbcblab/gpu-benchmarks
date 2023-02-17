@@ -1,4 +1,16 @@
 # gpu-benchmarks
+## include
+The target must be compiled with the flag to include the path to the library's umbrella file `-Igpu-benchmarks/include`, and the flag to include cuBLAS `-lcublas`. Then, include the library using:
+```
+#include <cuda_benchmark_suite.cuh>
+```
+An example of instantiation of a benchmark function looks like:
+```
+char shuffleFile[] =  "shufflefile.bin";
+char shiftFile[] =  "shiftfile.bin";
+char matrixFile[] =  "matrixfile.bin";
+Benchmark<float> *B = createBenchmark<float>(DIM_SIZE, NP, FUNC_ID, shuffleFile, shiftFile, matrixFile);
+```
 
 ## build
 
