@@ -6,7 +6,7 @@
 
 #ifndef HGBAT_KERNEL_NO_CONSTANT
 template<typename T>
-inline __global__ void hgbat_gpu(T *x, T *f, int nx);
+ __global__ void hgbat_gpu(T *x, T *f, int nx);
 #endif
 
 #ifndef SCHWEFEL_KERNEL_NO_CONSTANT
@@ -254,7 +254,7 @@ inline __global__ void hgbat_gpu<double>(double *x, double *f, int nx){
 } 
 
 template<>
-inline __global__ void hgbat_gpu<float>(float *x, float *f, int nx){
+ __global__ void hgbat_gpu<float>(float *x, float *f, int nx){
     int i;
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;

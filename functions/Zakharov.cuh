@@ -6,7 +6,7 @@
 
 #ifndef ZAKHAROV_KERNEL
 template <typename T>
-inline __global__ void zakharov_gpu(T *x, T *f, int nx, int constant_f);
+__global__ void zakharov_gpu(T *x, T *f, int nx, int constant_f);
 #endif
 
 template <class T> 
@@ -97,7 +97,7 @@ class Zakharov : public Benchmark<T> {
 #ifndef ZAKHAROV_KERNEL
 #define ZAKHAROV_KERNEL
 template <> 
-inline __global__ void zakharov_gpu<double>(double *x, double *f, int nx, int constant_f){
+__global__ void zakharov_gpu<double>(double *x, double *f, int nx, int constant_f){
     int i;
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
@@ -135,7 +135,7 @@ inline __global__ void zakharov_gpu<double>(double *x, double *f, int nx, int co
 }
 
 template <> 
-inline __global__ void zakharov_gpu<float>(float *x, float *f, int nx, int constant_f){
+ __global__ void zakharov_gpu<float>(float *x, float *f, int nx, int constant_f){
     int i;
     int chromo_id = blockIdx.x*blockDim.y + threadIdx.y;
     int gene_block_id   = threadIdx.y*blockDim.x + threadIdx.x;
