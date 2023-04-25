@@ -7,6 +7,8 @@
 
 #include <cooperative_groups.h>
 
+
+
 namespace cg = cooperative_groups;
 
 __device__ __constant__ float p_lambda_dev[8];
@@ -16,6 +18,8 @@ __device__ __constant__ float p_delta_dev[8];
 
 template<typename T>
 __global__ void cfcal_gpu(T *x, T *f, T *Os, T *fit, int nx, int constant_f);
+
+
 
 template <class T> 
 class Benchmark {
@@ -44,10 +48,8 @@ class Benchmark {
         int shared_mem_size;
         int grid_size_shift;
 
-        int individuals_per_block(int pop_size, int threads_p_individual){
-            return max( 1,              // if division equals to zero, use 1 individual per block instead
-                        min(pop_size, MIN_OCCUPANCY/ threads_p_individual));
-        }
+        // individuals per block
+        int ipb = 1;
 
         int max_threads_per_individual(){
             return min( MAX_BLOCK_SIZE, 
@@ -56,13 +58,31 @@ class Benchmark {
 
         void kernel_launch_config(int &grid_size, dim3 &block_size, int &shared_mem_size){
             int threads_p_individual = max_threads_per_individual();
-            int chromosomes_p_block  = individuals_per_block(pop_size, threads_p_individual);
+            int chromosomes_p_block  = ipb;
             
             grid_size       = pop_size/chromosomes_p_block;
+
+            // if there is a remainder, we must launch one more block
+            if(pop_size % chromosomes_p_block){
+                grid_size++;
+            }   
+
             block_size.x    = threads_p_individual;
             block_size.y    = chromosomes_p_block;
-            shared_mem_size = chromosomes_p_block*threads_p_individual*sizeof(T);
+            shared_mem_size = block_size.x*block_size.y*sizeof(T);
     
+        }
+
+        void set_individuals_per_block(int individuals_per_block){
+            int threads_p_individual = max_threads_per_individual();
+            grid_size       = pop_size/individuals_per_block;
+            // if there is a remainder, we must launch one more block
+            if(pop_size % individuals_per_block){
+                grid_size++;
+            }   
+            block_shape.x = threads_p_individual;
+            block_shape.y = individuals_per_block;
+            shared_mem_size = block_shape.x*block_shape.y*sizeof(T);
         }
 
         // set global optimum
@@ -243,7 +263,7 @@ class Benchmark {
         void setMin( T );
         void setMax( T );
 
-        /* GPU launch compute status */
+        /* set GPU launch config */
         void set_launch_config(int grid, dim3 block){
             grid_size = grid;
             block_shape = block;

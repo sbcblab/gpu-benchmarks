@@ -91,7 +91,6 @@ class Zakharov : public Benchmark<T> {
         }
 
 
-
 };
 
 #ifndef ZAKHAROV_KERNEL
