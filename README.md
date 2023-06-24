@@ -30,6 +30,17 @@ To use the library in your code, you should include the umbrella file `cuda_benc
 #include <cuda_benchmark_suite.cuh>
 ```
 
+## Auxiliary Files
+
+The benchmark functions rely on auxiliary files that contain rotation, shuffling, and shifting vectors. Currently, these functions expect the data to be stored in *binary* files as follows:
+
+- Rotation Matrix: A single- or double-precision floating-point matrix of size $nxn$.
+- Shift Array: A single- or double-precision floating-point array of size $n$.
+- Shuffle Array: An integer array of size $n$.
+
+To help you create these files and customize the benchmark according to your desired problem size, we provide a script in the `input_data` directory. For detailed instructions on how to use this script, please refer to the README file included in the `input_data` directory.
+
+## Example 
 
 An example of instantiation of a benchmark function looks like:
 ```
