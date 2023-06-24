@@ -32,7 +32,7 @@ To use the library in your code, you should include the umbrella file `cuda_benc
 
 ## Auxiliary Files
 
-The benchmark functions rely on auxiliary files that contain rotation, shuffling, and shifting vectors. Currently, these functions expect the data to be stored in *binary* files as follows:
+The benchmark functions rely on auxiliary files that contain rotation, shuffling, and shifting vectors. Currently, these functions expect the data to be stored in **binary** files as follows:
 
 - Rotation Matrix: A single- or double-precision floating-point matrix of size $nxn$.
 - Shift Array: A single- or double-precision floating-point array of size $n$.
@@ -48,11 +48,4 @@ char shuffleFile[] =  "shufflefile.bin";
 char shiftFile[] =  "shiftfile.bin";
 char matrixFile[] =  "matrixfile.bin";
 Benchmark<float> *B = createBenchmark<float>(DIM_SIZE, NP, FUNC_ID, shuffleFile, shiftFile, matrixFile);
-```
-
-## build
-
-From the `gpu-benchmarks` directory:
-```
-make
 ```
