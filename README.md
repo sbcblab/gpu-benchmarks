@@ -19,13 +19,18 @@ This C++ library provides GPU-accelerated benchmark functions of the CEC 2022 bo
 
 ## Requisites
 
-For compiling the library you need CUDA installed.   
+To compile the library, you need to have CUDA installed on your system. Ensure that you have CUDA installed before proceeding with the compilation process.
 
-## include
-The target must be compiled with the flag to include the path to the library's umbrella file `-Igpu-benchmarks/include`, and the flag to include cuBLAS `-lcublas`. Then, include the library using:
+Additionally, when compiling your code, it is necessary to link the cuBLAS library. To do this, include the `-lcublas` flag during compilation.
+
+## Include
+
+To use the library in your code, you should include the umbrella file `cuda_benchmark_suite.cuh` as desired. The file can be found at the following path: `/gpu-benchmarks/include`. We recommend adding this path to the search path by compiling your code with the `-I gpu-benchmarks/include` flag. Once you have done that, you can include the library using the following statement:
 ```
 #include <cuda_benchmark_suite.cuh>
 ```
+
+
 An example of instantiation of a benchmark function looks like:
 ```
 char shuffleFile[] =  "shufflefile.bin";
